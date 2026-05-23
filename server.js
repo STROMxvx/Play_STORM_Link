@@ -31,7 +31,7 @@ const users = {
         subRole: null,
         birthDate: '01.01.2000',
         comment: 'Создатель',
-        joinDate: new Date().toLocaleDateString(),
+        joinDate: '01.01.2020',
         frozen: false,
         frozenReason: null
     }
@@ -60,30 +60,15 @@ const rankNames = {
 
 // ===== ВСЕ ЧАТЫ (ПОЛНЫЙ СПИСОК) =====
 const messages = {
-    // Основные
     info_chat: [],
     announcements: [],
     complaints: [],
     ideas: [],
     tasks: [],
-    warnings: [],
+    warnings_list: [],
     rules: [],
-    
-    // Звонки
     guest_call: [],
-    squad545_call: [],
-    record1: [],
-    record2: [],
-    record4: [],
-    stream: [],
-    workers_meet: [],
-    moderators_meet: [],
-    admin_channel: [],
-    
-    // LVL 2
     squad545: [],
-    
-    // Трудовой состав
     labor_general: [],
     editor: [],
     artist: [],
@@ -93,14 +78,8 @@ const messages = {
     searcher: [],
     builder: [],
     coder: [],
-    
-    // LVL 4
     hurricane: [],
-    
-    // LVL 5
     moderators: [],
-    
-    // LVL 6
     admin_chat: []
 };
 
@@ -165,7 +144,7 @@ app.post('/api/addUser', (req, res) => {
         return res.json({ error: 'access denied' });
     }
     
-    const { nickname, name, lvl, subRole, birthDate, comment, password } = req.body;
+    const { nickname, name, lvl, subRole, birthDate, comment, password, joinDate } = req.body;
     
     if (!nickname || !name || !password) {
         return res.json({ error: 'Заполните ник, имя и пароль' });
@@ -174,6 +153,9 @@ app.post('/api/addUser', (req, res) => {
     if (users[nickname]) {
         return res.json({ error: 'Пользователь с таким ником уже существует' });
     }
+    
+    // Используем переданную дату вступления, если есть, иначе сегодняшнюю
+    const finalJoinDate = joinDate && joinDate.trim() !== '' ? joinDate : new Date().toLocaleDateString();
     
     users[nickname] = {
         nickname: nickname,
@@ -184,7 +166,7 @@ app.post('/api/addUser', (req, res) => {
         subRole: subRole || null,
         birthDate: birthDate || '',
         comment: comment || '',
-        joinDate: new Date().toLocaleDateString(),
+        joinDate: finalJoinDate,
         frozen: false,
         frozenReason: null
     };
@@ -198,7 +180,7 @@ app.post('/api/editUser', (req, res) => {
         return res.json({ error: 'access denied' });
     }
     
-    const { nickname, name, lvl, subRole, birthDate, comment } = req.body;
+    const { nickname, name, lvl, subRole, birthDate, comment, joinDate } = req.body;
     
     if (!users[nickname]) {
         return res.json({ error: 'Пользователь не найден' });
@@ -210,6 +192,9 @@ app.post('/api/editUser', (req, res) => {
     users[nickname].subRole = subRole || null;
     users[nickname].birthDate = birthDate || '';
     users[nickname].comment = comment || '';
+    if (joinDate && joinDate.trim() !== '') {
+        users[nickname].joinDate = joinDate;
+    }
     
     res.json({ success: true });
 });
