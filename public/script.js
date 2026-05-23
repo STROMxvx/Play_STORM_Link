@@ -494,6 +494,271 @@ function submitComplaint() {
     alert("✅ Жалоба отправлена!");
 }
 
+// ===== ФУНКЦИЯ ДЛЯ ВЫДАЧИ НАКАЗАНИЙ (ВЫГОВОР/БАН/МУТ) =====
+function openPunishModal(nickname) {
+    const user = allUsers.find(u => u.nickname === nickname);
+    if (!user) return;
+    
+    const modal = document.getElementById('modal');
+    const modalBody = document.getElementById('modalBody');
+    
+    const warningsReasons = [
+        "Унижения и оскорбления игроков",
+        "Отказ от защиты члена команды",
+        "Флуд, боты, стикеры",
+        "Неуважение к участникам",
+        "Превышение полномочий",
+        "Ссылки без разрешения",
+        "Оскорбления игроков",
+        "Спам сообщений",
+        "Оскорбление труда участников",
+        "Неуместная критика",
+        "Споры и скандалы",
+        "Упоминание прошлого",
+        "Агрессия и неадекватное поведение",
+        "Неуважение к старшему составу"
+    ];
+    
+    const banReasons = [
+        "Неуважение к старшему составу (2 выговора)",
+        "Срыв съёмок или стримов",
+        "Оскорбление родных",
+        "Оскорбление администрации и проектов",
+        "Предательство",
+        "Переманивание участников",
+        "Слив информации",
+        "Разговоры о политике",
+        "Контент 18+",
+        "Призывы к митингам, бунтам, рейдам",
+        "Нарушение УК РФ и СНГ"
+    ];
+    
+    const muteReasons = [
+        "Флуд сообщениями",
+        "Спам",
+        "Оскорбления",
+        "Неуместная критика",
+        "Споры и скандалы",
+        "Ссылки без разрешения"
+    ];
+    
+    const currentWarnings = getWarningCount(nickname);
+    
+    modalBody.innerHTML = `
+        <h3>⚖️ Выдать наказание для ${escapeHtml(nickname)}</h3>
+        <div style="text-align:center;margin:15px 0;">
+            <span style="display:inline-block;padding:6px 20px;background:${rankColors[user.lvl]};border-radius:30px;color:white;font-weight:bold;text-shadow:0 0 2px black;">${user.lvl} LVL · ${rankNames[user.lvl]}</span>
+            ${user.subRole ? `<div style="margin-top:8px;">📌 Должность: ${escapeHtml(user.subRole)}</div>` : ''}
+            <div style="margin-top:5px;color:#ffaa33;">⚠️ Текущие выговоры: ${currentWarnings}/3</div>
+        </div>
+        
+        <label>📋 Выберите тип наказания:</label>
+        <select id="punishType" style="width:100%; padding:12px; margin-bottom:20px; background:#0a1e3a; border:1px solid #00bfff; border-radius:14px; color:#ffdd00;">
+            <option value="warning">📝 Устное предупреждение</option>
+            <option value="strike">🔴 Выговор</option>
+            <option value="ban">🚫 Бан</option>
+            <option value="mute">🔇 Мут</option>
+        </select>
+        
+        <div id="punishForm"></div>
+        
+        <button onclick="submitPunish('${nickname}')" style="width:100%; margin-top:20px;">✅ Отправить наказание</button>
+    `;
+    
+    modal.style.display = 'block';
+    
+    document.getElementById('punishType').addEventListener('change', (e) => {
+        updatePunishForm(e.target.value, nickname, user, currentWarnings, warningsReasons, banReasons, muteReasons);
+    });
+    
+    updatePunishForm('warning', nickname, user, currentWarnings, warningsReasons, banReasons, muteReasons);
+}
+
+function updatePunishForm(type, nickname, user, currentWarnings, warningsReasons, banReasons, muteReasons) {
+    const container = document.getElementById('punishForm');
+    const adminRank = `${currentUser.lvl} LVL · ${rankNames[currentUser.lvl]}${currentUser.subRole ? ` · ${currentUser.subRole}` : ''}`;
+    
+    if (type === 'warning') {
+        container.innerHTML = `
+            <div style="background:rgba(0,100,0,0.3); padding:15px; border-radius:14px; margin-bottom:15px;">
+                <div style="color:#ffdd00; font-weight:bold; margin-bottom:10px;">📝 УСТНОЕ ПРЕДУПРЕЖДЕНИЕ</div>
+                <p><strong>👮 Где состоит (Администрация):</strong> ${adminRank}</p>
+                <p><strong>👤 Ник:</strong> <span style="color:#ffdd00;">${escapeHtml(nickname)}</span></p>
+                <p><strong>⭐ Ранг:</strong> ${user.lvl} LVL · ${rankNames[user.lvl]}</p>
+                <p><strong>📌 Должность:</strong> ${user.subRole || '—'}</p>
+                <label>📝 Причина:</label>
+                <textarea id="punishReason" rows="2" style="width:100%; padding:10px; background:#0a1e3a; border:1px solid #00bfff; border-radius:10px; color:#ffdd00;"></textarea>
+            </div>
+        `;
+    } 
+    else if (type === 'strike') {
+        container.innerHTML = `
+            <div style="background:rgba(255,51,102,0.2); padding:15px; border-radius:14px; margin-bottom:15px;">
+                <div style="color:#ffdd00; font-weight:bold; margin-bottom:10px;">🔴 ВЫГОВОР</div>
+                <p><strong>👮 Где состоит (Администрация):</strong> ${adminRank}</p>
+                <p><strong>👤 Ник:</strong> <span style="color:#ffdd00;">${escapeHtml(nickname)}</span></p>
+                <p><strong>⭐ Ранг:</strong> ${user.lvl} LVL · ${rankNames[user.lvl]}</p>
+                <p><strong>📌 Должность:</strong> ${user.subRole || '—'}</p>
+                <p><strong>⚠️ Сумма выговоров на данный момент:</strong> ${currentWarnings}/3</p>
+                <label>📝 Выберите причину выговора:</label>
+                <select id="punishReason" style="width:100%; padding:12px; background:#0a1e3a; border:1px solid #00bfff; border-radius:14px; color:#ffdd00;">
+                    <option value="">-- Выберите причину --</option>
+                    ${warningsReasons.map(r => `<option value="${r}">${r}</option>`).join('')}
+                </select>
+            </div>
+        `;
+    } 
+    else if (type === 'ban') {
+        container.innerHTML = `
+            <div style="background:rgba(255,68,68,0.2); padding:15px; border-radius:14px; margin-bottom:15px;">
+                <div style="color:#ffdd00; font-weight:bold; margin-bottom:10px;">🚫 БАН</div>
+                <p><strong>👮 Где состоит (Администрация):</strong> ${adminRank}</p>
+                <p><strong>👤 Ник:</strong> <span style="color:#ffdd00;">${escapeHtml(nickname)}</span></p>
+                <p><strong>⭐ Ранг:</strong> ${user.lvl} LVL · ${rankNames[user.lvl]}</p>
+                <p><strong>📌 Должность:</strong> ${user.subRole || '—'}</p>
+                <p><strong>⚠️ Сумма выговоров на данный момент:</strong> ${currentWarnings}/3</p>
+                <label>📝 Выберите причину бана:</label>
+                <select id="banReasonSelect" style="width:100%; padding:12px; background:#0a1e3a; border:1px solid #00bfff; border-radius:14px; color:#ffdd00;">
+                    <option value="">-- Выберите причину --</option>
+                    ${banReasons.map(r => `<option value="${r}">${r}</option>`).join('')}
+                    <option value="Другое">Другое (напишите ниже)</option>
+                </select>
+                <label style="margin-top:10px;">📝 Или напишите причину сами:</label>
+                <textarea id="punishReason" rows="2" style="width:100%; padding:10px; background:#0a1e3a; border:1px solid #00bfff; border-radius:10px; color:#ffdd00;" placeholder="Введите причину бана..."></textarea>
+                <label style="margin-top:10px;">⏰ Срок бана:</label>
+                <select id="banDuration" style="width:100%; padding:12px; background:#0a1e3a; border:1px solid #00bfff; border-radius:14px; color:#ffdd00;">
+                    <option value="1 день">1 день</option>
+                    <option value="3 дня">3 дня</option>
+                    <option value="7 дней">7 дней</option>
+                    <option value="14 дней">14 дней</option>
+                    <option value="30 дней">30 дней</option>
+                    <option value="Навсегда">Навсегда</option>
+                </select>
+            </div>
+        `;
+        
+        document.getElementById('banReasonSelect')?.addEventListener('change', (e) => {
+            if (e.target.value !== 'Другое') {
+                document.getElementById('punishReason').value = e.target.value;
+            }
+        });
+    } 
+    else if (type === 'mute') {
+        container.innerHTML = `
+            <div style="background:rgba(255,153,51,0.2); padding:15px; border-radius:14px; margin-bottom:15px;">
+                <div style="color:#ffdd00; font-weight:bold; margin-bottom:10px;">🔇 МУТ</div>
+                <p><strong>👮 Где состоит (Администрация):</strong> ${adminRank}</p>
+                <p><strong>👤 Ник:</strong> <span style="color:#ffdd00;">${escapeHtml(nickname)}</span></p>
+                <p><strong>⭐ Ранг:</strong> ${user.lvl} LVL · ${rankNames[user.lvl]}</p>
+                <p><strong>📌 Должность:</strong> ${user.subRole || '—'}</p>
+                <label>📝 Выберите причину мута:</label>
+                <select id="muteReasonSelect" style="width:100%; padding:12px; background:#0a1e3a; border:1px solid #00bfff; border-radius:14px; color:#ffdd00;">
+                    <option value="">-- Выберите причину --</option>
+                    ${muteReasons.map(r => `<option value="${r}">${r}</option>`).join('')}
+                    <option value="Другое">Другое (напишите ниже)</option>
+                </select>
+                <label style="margin-top:10px;">📝 Или напишите причину сами:</label>
+                <textarea id="punishReason" rows="2" style="width:100%; padding:10px; background:#0a1e3a; border:1px solid #00bfff; border-radius:10px; color:#ffdd00;" placeholder="Введите причину мута..."></textarea>
+                <label style="margin-top:10px;">⏰ Время мута:</label>
+                <select id="muteDuration" style="width:100%; padding:12px; background:#0a1e3a; border:1px solid #00bfff; border-radius:14px; color:#ffdd00;">
+                    <option value="10 минут">10 минут</option>
+                    <option value="30 минут">30 минут</option>
+                    <option value="1 час">1 час</option>
+                    <option value="3 часа">3 часа</option>
+                    <option value="6 часов">6 часов</option>
+                    <option value="12 часов">12 часов</option>
+                    <option value="1 день">1 день</option>
+                    <option value="7 дней">7 дней</option>
+                </select>
+            </div>
+        `;
+        
+        document.getElementById('muteReasonSelect')?.addEventListener('change', (e) => {
+            if (e.target.value !== 'Другое') {
+                document.getElementById('punishReason').value = e.target.value;
+            }
+        });
+    }
+}
+
+function submitPunish(nickname) {
+    const punishType = document.getElementById('punishType').value;
+    let reason = document.getElementById('punishReason')?.value || '';
+    let duration = '';
+    let typeName = '';
+    let color = '';
+    
+    if (punishType === 'warning') {
+        typeName = '📝 УСТНОЕ ПРЕДУПРЕЖДЕНИЕ';
+        color = '#00ff88';
+        if (!reason) { alert("Введите причину предупреждения"); return; }
+    } 
+    else if (punishType === 'strike') {
+        typeName = '🔴 ВЫГОВОР';
+        color = '#ff3366';
+        if (!reason) { alert("Выберите причину выговора"); return; }
+        
+        const currentWarnings = getWarningCount(nickname) + 1;
+        addWarningToUser(nickname, reason);
+        
+        if (currentWarnings >= 3) {
+            alert(`⚠️ У пользователя ${nickname} уже ${currentWarnings}/3 выговоров! Рекомендуется выдать бан.`);
+        }
+    } 
+    else if (punishType === 'ban') {
+        typeName = '🚫 БАН';
+        color = '#ff4444';
+        const durationSelect = document.getElementById('banDuration');
+        duration = durationSelect ? durationSelect.value : 'Навсегда';
+        if (!reason) { alert("Введите причину бана"); return; }
+    } 
+    else if (punishType === 'mute') {
+        typeName = '🔇 МУТ';
+        color = '#ffaa33';
+        const durationSelect = document.getElementById('muteDuration');
+        duration = durationSelect ? durationSelect.value : '1 час';
+        if (!reason) { alert("Введите причину мута"); return; }
+    }
+    
+    const adminRank = `${currentUser.lvl} LVL · ${rankNames[currentUser.lvl]}${currentUser.subRole ? ` · ${currentUser.subRole}` : ''}`;
+    
+    let message = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `${typeName}\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `👮 Где состоит: ${adminRank}\n`;
+    message += `👤 Ник нарушителя: ${nickname}\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `📝 Причина: ${reason}\n`;
+    
+    if (duration) {
+        message += `⏰ Срок: ${duration}\n`;
+    }
+    
+    if (punishType === 'strike') {
+        const newCount = getWarningCount(nickname);
+        message += `⚠️ Выговоров теперь: ${newCount}/3\n`;
+    }
+    
+    message += `👮 Выдал: ${currentUser.nickname}\n`;
+    message += `📅 Дата: ${new Date().toLocaleString()}\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    
+    socket.emit('send message', {
+        chat: 'warnings_list',
+        from: currentUser.nickname,
+        text: message,
+        lvl: currentUser.lvl,
+        color: rankColors[currentUser.lvl]
+    });
+    
+    alert(`✅ ${typeName} выдан пользователю ${nickname}`);
+    closeModal();
+    
+    if (punishType === 'ban') {
+        toggleFreeze(nickname, reason);
+    }
+}
+
 // ===== СОКЕТЫ =====
 socket.on('chat history', (messages) => { 
     const container = document.getElementById('chatMessages'); 
@@ -570,7 +835,6 @@ function openUserModal(nickname) {
     const user = allUsers.find(u => u.nickname === nickname); 
     if (!user) return;
     
-    // РАСЧЁТ СТАЖА
     const joinDate = new Date(user.joinDate); 
     const now = new Date();
     let years = now.getFullYear() - joinDate.getFullYear(); 
@@ -610,37 +874,13 @@ function openUserModal(nickname) {
         <div class="user-actions-modal">
             ${currentUser.lvl === 7 ? `
                 <button class="user-action-btn edit" onclick="editUser('${user.nickname}')">✏️ Редактировать</button>
-                <button class="user-action-btn warn" onclick="giveWarningWithReason('${user.nickname}')">📝 Выдать выговор</button>
+                <button class="user-action-btn warn" onclick="openPunishModal('${user.nickname}')">⚖️ Выдать наказание</button>
                 <button class="user-action-btn freeze" onclick="toggleFreeze('${user.nickname}')">${user.frozen ? '❄️ Разморозить' : '🔥 Заморозить'}</button>
                 ${user.nickname !== 'STORM_X' ? `<button class="user-action-btn delete" onclick="deleteUser('${user.nickname}')">❌ Удалить</button>` : ''}
             ` : '<p style="color:#888;">👁️ Только просмотр</p>'}
         </div>
     `;
     modal.style.display = 'block';
-}
-
-// ===== ВЫДАТЬ ВЫГОВОР =====
-function giveWarningWithReason(nickname) { 
-    if (currentUser.lvl < 6) {
-        alert("У вас нет прав для выдачи выговоров");
-        return; 
-    }
-    const reason = prompt(`Выговор для ${nickname}\nВведите причину выговора:`); 
-    if (!reason) return; 
-    
-    const count = getWarningCount(nickname) + 1; 
-    addWarningToUser(nickname, reason); 
-    
-    socket.emit('send message', { 
-        chat: 'warnings_list', 
-        from: currentUser.nickname, 
-        text: `🔴 ВЫГОВОР №${count} для ${nickname}\n━━━━━━━━━━━━━━━━━━━━━━\n📝 Причина: ${reason}\n👮 Выдал: ${currentUser.nickname}\n📅 Дата: ${new Date().toLocaleString()}\n━━━━━━━━━━━━━━━━━━━━━━`,
-        lvl: currentUser.lvl, 
-        color: rankColors[currentUser.lvl] 
-    }); 
-    
-    alert(`✅ Выговор выдан ${nickname} (${count}/3)`); 
-    closeModal(); 
 }
 
 // ===== АДМИН ФУНКЦИИ (ТОЛЬКО LVL7) =====
@@ -814,12 +1054,12 @@ async function submitEditUser(nickname) {
     }
 }
 
-async function toggleFreeze(nickname) { 
+async function toggleFreeze(nickname, customReason = null) { 
     if (currentUser.lvl !== 7) return; 
     const user = allUsers.find(u => u.nickname === nickname); 
-    let reason = null; 
+    let reason = customReason; 
     
-    if (!user.frozen) {
+    if (!user.frozen && !reason) {
         reason = prompt('Причина заморозки:\n- Аккаунт в "Отпуске"\n- Аккаунт взломан\n- Странные активности на аккаунте', 'Аккаунт в "Отпуске"'); 
         if (!reason) return; 
     }
