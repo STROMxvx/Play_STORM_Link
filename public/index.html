@@ -8,6 +8,7 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- ЛЕВАЯ ПАНЕЛЬ -->
         <div class="sidebar-left">
             <div class="user-profile">
                 <div class="user-rank" id="userRankBadge">?</div>
@@ -20,26 +21,31 @@
             <div class="chats-list" id="chatsList"></div>
         </div>
         
+        <!-- ЦЕНТРАЛЬНАЯ ПАНЕЛЬ (ЧАТ) -->
         <div class="chat-main">
             <div class="chat-header">
                 <span id="currentChatName">Информация</span>
             </div>
-            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">⚡ Добро пожаловать в Squad_STORM_Link ⚡<br><small>Выберите чат слева</small></div>
+            </div>
             <div class="chat-input-area" id="chatInputArea">
                 <input type="text" id="messageInput" placeholder="Введите сообщение...">
                 <button id="sendBtn">📤</button>
             </div>
         </div>
         
+        <!-- ПРАВАЯ ПАНЕЛЬ (УЧАСТНИКИ) - ТОЛЬКО LVL 7 -->
         <div class="sidebar-right" id="sidebarRight" style="display: none;">
             <div class="members-header">
                 <span>👥 Участники</span>
-                <button id="addMemberBtn" class="add-member-btn">➕</button>
+                <button id="addMemberBtn" class="add-member-btn" title="Добавить участника">➕</button>
             </div>
             <div class="members-list" id="membersList"></div>
         </div>
     </div>
     
+    <!-- МОДАЛЬНОЕ ОКНО -->
     <div id="modal" class="modal">
         <div class="modal-content">
             <span class="modal-close">&times;</span>
