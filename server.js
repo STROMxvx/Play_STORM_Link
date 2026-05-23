@@ -3,6 +3,8 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const http = require('http');
 const socketIo = require('socket.io');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,8 +21,33 @@ app.use(session({
     cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-const users = {
-    'STORM_X': {
+// ===== ФУНКЦИИ ДЛЯ СОХРАНЕНИЯ ДАННЫХ =====
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+
+function loadData(filename, defaultValue) {
+    const filePath = path.join(DATA_DIR, filename);
+    if (fs.existsSync(filePath)) {
+        try {
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        } catch(e) { return defaultValue; }
+    }
+    return defaultValue;
+}
+
+function saveData(filename, data) {
+    const filePath = path.join(DATA_DIR, filename);
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+// Загружаем данные
+let users = loadData('users.json', {});
+let messages = loadData('messages.json', {});
+let userWarnings = loadData('warnings.json', {});
+
+// Если нет владельца - создаём
+if (!users['STORM_X']) {
+    users['STORM_X'] = {
         password: bcrypt.hashSync('xVgoogYu545@stojj0', 10),
         nickname: 'STORM_X',
         name: 'Шторм',
@@ -32,17 +59,24 @@ const users = {
         joinDate: '01.01.2020',
         frozen: false,
         frozenReason: null
-    }
-};
+    };
+    saveData('users.json', users);
+}
 
-const rankColors = { 1: '#ffffff', 2: '#00ff88', 3: '#00ccff', 4: '#aa66ff', 5: '#ffaa33', 6: '#ff3366', 7: '#111111' };
-const rankNames = { 1: 'Гость', 2: 'Squad 545', 3: 'Трудовой состав', 4: 'Команда Ураган', 5: 'Модератор', 6: 'Администратор', 7: 'Владелец' };
-
-const messages = {
-    info_chat: [], announcements: [], complaints: [], ideas: [], tasks: [], warnings_list: [], rules: [],
+// Инициализация пустых чатов
+const defaultMessages = {
+    info_chat: [], announcements: [], complaints: [], ideas: [], tasks: [], warnings_list: [], rules: [], duties: [], experience: [],
     guest_call: [], squad545: [], labor_general: [], editor: [], artist: [], animator: [],
     costumer: [], grinder: [], searcher: [], builder: [], coder: [], hurricane: [], moderators: [], admin_chat: []
 };
+
+for (let key in defaultMessages) {
+    if (!messages[key]) messages[key] = [];
+}
+saveData('messages.json', messages);
+
+const rankColors = { 1: '#ffffff', 2: '#00ff88', 3: '#00ccff', 4: '#aa66ff', 5: '#ffaa33', 6: '#ff3366', 7: '#111111' };
+const rankNames = { 1: 'Гость', 2: 'Squad 545', 3: 'Трудовой состав', 4: 'Команда Ураган', 5: 'Модератор', 6: 'Администратор', 7: 'Владелец' };
 
 function authRequired(req, res, next) {
     if (!req.session.user) return res.redirect('/login.html');
@@ -75,6 +109,10 @@ app.get('/api/users', (req, res) => {
     res.json(allUsers);
 });
 
+app.get('/api/warnings', (req, res) => {
+    res.json(userWarnings);
+});
+
 app.post('/api/addUser', (req, res) => {
     if (!req.session.user) return res.json({ error: 'not authorized' });
     const currentUser = users[req.session.user.nickname];
@@ -90,6 +128,7 @@ app.post('/api/addUser', (req, res) => {
         subRole: subRole || null, birthDate: birthDate || '', comment: comment || '',
         joinDate: finalJoinDate, frozen: false, frozenReason: null
     };
+    saveData('users.json', users);
     res.json({ success: true });
 });
 
@@ -104,6 +143,7 @@ app.post('/api/editUser', (req, res) => {
     users[nickname].birthDate = birthDate || '';
     users[nickname].comment = comment || '';
     if (joinDate && joinDate.trim() !== '') users[nickname].joinDate = joinDate;
+    saveData('users.json', users);
     res.json({ success: true });
 });
 
@@ -114,12 +154,12 @@ app.post('/api/toggleFreeze', (req, res) => {
     if (users[nickname].frozen) {
         users[nickname].frozen = false;
         users[nickname].frozenReason = null;
-        res.json({ success: true, action: 'unfrozen' });
     } else {
         users[nickname].frozen = true;
         users[nickname].frozenReason = reason || 'Без причины';
-        res.json({ success: true, action: 'frozen' });
     }
+    saveData('users.json', users);
+    res.json({ success: true });
 });
 
 app.post('/api/deleteUser', (req, res) => {
@@ -128,6 +168,20 @@ app.post('/api/deleteUser', (req, res) => {
     if (nickname === 'STORM_X') return res.json({ error: 'Нельзя удалить владельца' });
     if (!users[nickname]) return res.json({ error: 'Пользователь не найден' });
     delete users[nickname];
+    saveData('users.json', users);
+    res.json({ success: true });
+});
+
+app.post('/api/addWarning', (req, res) => {
+    if (!req.session.user) return res.json({ error: 'not authorized' });
+    const { nickname, reason } = req.body;
+    if (!userWarnings[nickname]) userWarnings[nickname] = [];
+    userWarnings[nickname].push({
+        reason: reason,
+        date: new Date().toLocaleString(),
+        giver: req.session.user.nickname
+    });
+    saveData('warnings.json', userWarnings);
     res.json({ success: true });
 });
 
@@ -160,7 +214,8 @@ io.on('connection', (socket) => {
         if (!data.chat || !messages[data.chat]) return;
         const message = { from: data.from, text: data.text, time: new Date().toLocaleTimeString(), lvl: data.lvl, color: data.color };
         messages[data.chat].push(message);
-        if (messages[data.chat].length > 200) messages[data.chat].shift();
+        if (messages[data.chat].length > 500) messages[data.chat].shift();
+        saveData('messages.json', messages);
         io.to(data.chat).emit('new message', message);
     });
     socket.on('disconnect', () => console.log('🔌 Сокет отключён'));
