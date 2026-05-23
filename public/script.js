@@ -4,33 +4,22 @@ let currentChat = 'info_chat';
 let allUsers = [];
 let complaintsCounter = 1;
 let currentReplyTo = null;
+let editingMessageId = null;
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 let recordingStartTime = null;
 let recordingTimerInterval = null;
-
 let userWarnings = {};
 
 // ===== ЦВЕТА И НАЗВАНИЯ РАНГОВ =====
 const rankColors = { 
-    1: '#ffffff', 
-    2: '#00ff88', 
-    3: '#00ccff', 
-    4: '#aa66ff', 
-    5: '#ffaa33', 
-    6: '#ff3366', 
-    7: '#111111' 
+    1: '#ffffff', 2: '#00ff88', 3: '#00ccff', 4: '#aa66ff', 
+    5: '#ffaa33', 6: '#ff3366', 7: '#111111' 
 };
-
 const rankNames = { 
-    1: 'Гость', 
-    2: 'Squad 545', 
-    3: 'Трудовой состав', 
-    4: 'Команда Ураган', 
-    5: 'Модератор', 
-    6: 'Администратор', 
-    7: 'Владелец' 
+    1: 'Гость', 2: 'Squad 545', 3: 'Трудовой состав', 
+    4: 'Команда Ураган', 5: 'Модератор', 6: 'Администратор', 7: 'Владелец' 
 };
 
 // ===== ФУНКЦИИ ДЛЯ ОПЫТА =====
@@ -39,7 +28,6 @@ function getExperienceRank(joinDateStr) {
     const now = new Date();
     const diffYears = now.getFullYear() - joinDate.getFullYear();
     const diffMonths = (diffYears * 12) + (now.getMonth() - joinDate.getMonth());
-    
     if (diffMonths >= 60) return '[MEGA OLD]';
     if (diffMonths >= 36) return '[OLD]';
     if (diffMonths >= 12) return '[Старичок]';
@@ -81,7 +69,6 @@ const dutiesText = `<div style="padding:10px; color:#ffffff; text-shadow:0 0 2px
 function generateExperienceText() {
     const now = new Date();
     const currentDate = now.toLocaleString('ru-RU');
-    
     const membersList = [
         { nickname: 'STORM_X', name: 'Шторм', tg: 'https://t.me/Storm_X545', lvl: 7, role: 'Владелец', joinDate: '01.01.2020' },
         { nickname: 'IVAN', name: 'Иван', tg: 'https://t.me/HeTy_HuKa_E_B_T', lvl: 6, role: 'Гл. Администратор', joinDate: '01.06.2024' },
@@ -91,7 +78,6 @@ function generateExperienceText() {
         { nickname: 'HILKA', name: 'Хилка', tg: 'https://t.me/Gheeeiq', lvl: 4, role: 'Актер', joinDate: '01.05.2024' },
         { nickname: 'EGOR', name: 'Егор', tg: 'https://t.me/mef9s', lvl: 4, role: 'Актер', joinDate: '01.08.2024' }
     ];
-    
     let membersHtml = '';
     for (let member of membersList) {
         const expRank = getExperienceRank(member.joinDate);
@@ -105,7 +91,6 @@ function generateExperienceText() {
         if (years > 0) expText = `${years} год${years > 1 ? 'а' : ''}`;
         else if (months > 0) expText = `${months} месяц${months > 1 ? 'а' : ''}`;
         else expText = 'менее месяца';
-        
         membersHtml += `
             <div style="background:rgba(0,150,255,0.1); margin:8px 0; padding:10px; border-radius:10px;">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -118,11 +103,9 @@ function generateExperienceText() {
             </div>
         `;
     }
-    
     return `<div style="padding:10px; color:#ffffff; text-shadow:0 0 2px black;">
         <h2 style="color:#ffdd00; text-align:center;">🌪 𝓨𝓹𝓪𝓻𝓪𝓷 🌪</h2>
         <div style="text-align:center; font-size:12px; color:#88ccff; margin-bottom:20px;">📅 ${currentDate} MSK</div>
-        
         <div style="background:rgba(0,0,0,0.3); border-radius:15px; padding:15px; margin-bottom:20px;">
             <h3 style="color:#ffdd00; margin-bottom:10px;">🏆 Система опыта</h3>
             <div style="display:grid; grid-template-columns:1fr 2fr; gap:8px; font-size:12px;">
@@ -134,7 +117,6 @@ function generateExperienceText() {
             </div>
             <div style="margin-top:15px; font-size:11px; color:#aaa;">⭐ Опыт получают участники с LVL 3 - 6</div>
         </div>
-        
         <h3 style="color:#ffdd00; margin-bottom:15px;">👥 Участники команды:</h3>
         ${membersHtml}
     </div>`;
@@ -251,33 +233,15 @@ const menuStructure = [
 ];
 
 const chatNames = {
-    info_chat: '📢 Информация',
-    announcements: '📣 Объявления',
-    complaints: '📋 Жалобы',
-    ideas: '💡 Идеи',
-    tasks: '📌 Задачи',
-    rules: '📜 Правила',
-    duties: '📋 Должности',
-    experience: '🏆 Опыт',
-    warnings_list: '⚠️ Выговоры',
-    squad545: '🟢 Squad 545',
-    labor_general: '💬 Общий чат',
-    editor: '✂️ Монтажёр',
-    artist: '🎨 Художник',
-    animator: '🎬 Аниматор',
-    costumer: '👘 Костюмер',
-    grinder: '⚙️ Нарешик',
-    searcher: '🔍 Поисковик',
-    builder: '🏗️ Билдер',
-    coder: '💻 Кодер',
-    hurricane: '🌀 Команда Ураган',
-    moderators: '🛡️ Модераторы',
-    admin_chat: '🔒 Админ. чат',
-    guest_call: '🎙️ Гостевой'
+    info_chat: '📢 Информация', announcements: '📣 Объявления', complaints: '📋 Жалобы',
+    ideas: '💡 Идеи', tasks: '📌 Задачи', rules: '📜 Правила', duties: '📋 Должности',
+    experience: '🏆 Опыт', warnings_list: '⚠️ Выговоры', squad545: '🟢 Squad 545',
+    labor_general: '💬 Общий чат', editor: '✂️ Монтажёр', artist: '🎨 Художник',
+    animator: '🎬 Аниматор', costumer: '👘 Костюмер', grinder: '⚙️ Нарешик',
+    searcher: '🔍 Поисковик', builder: '🏗️ Билдер', coder: '💻 Кодер',
+    hurricane: '🌀 Команда Ураган', moderators: '🛡️ Модераторы',
+    admin_chat: '🔒 Админ. чат', guest_call: '🎙️ Гостевой'
 };
-
-let currentMessages = [];
-let editingMessageId = null;
 
 // ===== ЗАГРУЗКА ПОЛЬЗОВАТЕЛЯ =====
 async function loadUser() {
@@ -357,16 +321,13 @@ function setupVoiceRecording() {
     
     voiceBtn.onmousedown = async () => {
         if (isRecording) return;
-        
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
-            
             mediaRecorder.ondataavailable = (event) => {
                 audioChunks.push(event.data);
             };
-            
             mediaRecorder.onstop = () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
@@ -381,13 +342,11 @@ function setupVoiceRecording() {
                 isRecording = false;
                 if (recordingTimerInterval) clearInterval(recordingTimerInterval);
             };
-            
             mediaRecorder.start();
             isRecording = true;
             recordingStartTime = Date.now();
             recordingIndicator.classList.add('active');
             if (messageInput) messageInput.placeholder = "🎙️ Запись... Отпустите для отправки";
-            
             recordingTimerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
                 const minutes = Math.floor(elapsed / 60);
@@ -399,13 +358,11 @@ function setupVoiceRecording() {
             alert("Нет доступа к микрофону");
         }
     };
-    
     voiceBtn.onmouseup = () => {
         if (mediaRecorder && isRecording) {
             mediaRecorder.stop();
         }
     };
-    
     voiceBtn.onmouseleave = () => {
         if (mediaRecorder && isRecording) {
             mediaRecorder.stop();
@@ -425,12 +382,10 @@ function setupFileUpload() {
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
             const progressDiv = document.getElementById('uploadProgress');
             const progressBar = document.getElementById('uploadProgressBar');
             const percentSpan = document.getElementById('uploadPercent');
             if (progressDiv) progressDiv.classList.add('active');
-            
             const reader = new FileReader();
             reader.onloadend = () => {
                 const fileData = reader.result;
@@ -443,7 +398,6 @@ function setupFileUpload() {
                 sendMessage(JSON.stringify(fileInfo), 'file');
                 if (progressDiv) progressDiv.classList.remove('active');
             };
-            
             reader.onprogress = (e) => {
                 if (e.lengthComputable && progressBar && percentSpan) {
                     const percent = Math.round((e.loaded / e.total) * 100);
@@ -451,7 +405,6 @@ function setupFileUpload() {
                     progressBar.value = percent;
                 }
             };
-            
             reader.readAsDataURL(file);
         };
         input.click();
@@ -492,25 +445,20 @@ function buildMenu() {
     const container = document.getElementById('chatsList');
     if (!container) return;
     container.innerHTML = '';
-    
     for (const category of menuStructure) {
         if (currentUser.lvl < category.minLvl) continue;
-        
         const catDiv = document.createElement('div'); 
         catDiv.className = 'chat-category'; 
         catDiv.innerText = category.category; 
         container.appendChild(catDiv);
-        
         for (const item of category.items) {
             let access = true;
             if (item.minLvl && currentUser.lvl < item.minLvl) access = false;
             if (item.roleRequired && currentUser.subRole !== item.roleRequired && currentUser.lvl < 6) access = false;
             if (!access) continue;
-            
             const mainItem = document.createElement('div'); 
             mainItem.className = `chat-item ${currentChat === item.id ? 'active' : ''}`;
             mainItem.innerHTML = `<span class="chat-icon">${item.name.charAt(0)}</span><span class="chat-name">${item.name}</span>`;
-            
             if (item.isParent) {
                 let isOpen = localStorage.getItem(`menu_${item.id}`) === 'open';
                 mainItem.onclick = (e) => { 
@@ -518,17 +466,14 @@ function buildMenu() {
                     toggleSubmenu(item.id); 
                 };
                 container.appendChild(mainItem);
-                
                 if (isOpen && item.subitems) {
                     for (const sub of item.subitems) {
                         let subAccess = true;
                         if (sub.minLvl && currentUser.lvl < sub.minLvl) subAccess = false;
                         if (sub.roleRequired && currentUser.subRole !== sub.roleRequired && currentUser.lvl < 6) subAccess = false;
                         if (!subAccess) continue;
-                        
                         const subItem = document.createElement('div'); 
                         subItem.className = `subchat-item ${currentChat === sub.id ? 'active' : ''}`;
-                        
                         if (sub.action === 'showMembers') { 
                             subItem.innerHTML = `👥 ${sub.name}`; 
                             subItem.onclick = () => showMembersPanel(); 
@@ -559,10 +504,7 @@ function switchChat(chatId) {
     buildMenu();
     currentReplyTo = null;
     editingMessageId = null;
-    
-    const headerSpan = document.getElementById('currentChatName');
-    if (headerSpan) headerSpan.innerHTML = chatNames[chatId] || chatId;
-    
+    document.getElementById('currentChatName').innerHTML = chatNames[chatId] || chatId;
     const inputArea = document.getElementById('chatInputArea');
     const isComplaintChat = chatId === 'complaints';
     const isReadOnlyChat = ['rules', 'duties', 'experience', 'warnings_list'].includes(chatId);
@@ -653,21 +595,17 @@ function switchChat(chatId) {
 function sendMessage(customContent, contentType = 'text') {
     const input = document.getElementById('messageInput');
     let text = customContent || (input ? input.value.trim() : '');
-    
     if (!text && contentType === 'text') return;
-    
     let finalText = text;
     if (contentType === 'audio') {
         finalText = `[🎤 Голосовое сообщение](${text})`;
     } else if (contentType === 'file') {
         finalText = `[📎 Файл](${text})`;
     }
-    
     if (currentReplyTo) {
         finalText = `📌 Ответ на сообщение от ${currentReplyTo.from}: "${currentReplyTo.text.substring(0, 50)}"\n━━━━━━━━━━━━━━━━\n${finalText}`;
         currentReplyTo = null;
     }
-    
     const messageData = {
         chat: currentChat,
         from: currentUser.nickname,
@@ -676,13 +614,11 @@ function sendMessage(customContent, contentType = 'text') {
         color: rankColors[currentUser.lvl],
         timestamp: Date.now()
     };
-    
     if (editingMessageId) {
         messageData.editId = editingMessageId;
         messageData.newText = finalText;
         editingMessageId = null;
     }
-    
     socket.emit('send message', messageData);
     if (input) input.value = '';
 }
@@ -745,9 +681,7 @@ function submitComplaint() {
     const desc = document.getElementById('complaintDesc')?.value;
     const violation = document.getElementById('violation')?.value;
     const punishment = document.getElementById('punishment')?.value;
-    
     if (!complainant || !target || !desc) { alert("Заполните поля"); return; }
-    
     const msg = `📋 ЖАЛОБА №${complaintsCounter}\n👤 Подал: ${complainant}\n👤 Нарушитель: ${target}\n📝 ${desc}\n⚠️ Нарушение: ${violation}\n⚡ Наказание: ${punishment}\n📅 ${new Date().toLocaleString()}`;
     socket.emit('send message', { chat: 'complaints', from: currentUser.nickname, text: msg, lvl: currentUser.lvl, color: rankColors[currentUser.lvl] });
     complaintsCounter++;
@@ -757,7 +691,6 @@ function submitComplaint() {
 
 // ===== СОКЕТЫ =====
 socket.on('chat history', (msgs) => { 
-    currentMessages = msgs || [];
     const c = document.getElementById('chatMessages'); 
     if (!c) return;
     c.innerHTML = ''; 
@@ -768,16 +701,11 @@ socket.on('chat history', (msgs) => {
     msgs.forEach(m => addMessageToChat(m)); 
 });
 
-socket.on('new message', (m) => {
-    currentMessages.push(m);
-    addMessageToChat(m);
-});
-
+socket.on('new message', (m) => addMessageToChat(m));
 socket.on('message edited', (data) => {
     const msgElement = document.querySelector(`.message[data-id="${data.id}"] .message-text`);
     if (msgElement) msgElement.innerHTML = escapeHtml(data.newText);
 });
-
 socket.on('message deleted', (data) => {
     const msgElement = document.querySelector(`.message[data-id="${data.id}"]`);
     if (msgElement) msgElement.remove();
@@ -788,7 +716,6 @@ function addMessageToChat(m) {
     if (!c) return;
     const isOwn = m.from === currentUser.nickname;
     const messageId = m.timestamp || Date.now() + Math.random();
-    
     let displayText = m.text;
     let filePreview = '';
     
@@ -830,8 +757,8 @@ function addMessageToChat(m) {
         <div class="message-text" style="white-space:pre-wrap;">${escapeHtml(displayText)}</div>
         <div class="message-actions">
             <button class="message-action-btn" onclick="replyToMessage('${escapeHtml(m.from)}', '${escapeHtml(displayText.substring(0, 50))}')">↩️ Ответить</button>
-            ${isOwn ? `<button class="message-action-btn" onclick="editMessage('${messageId}', '${escapeHtml(displayText)}')">✏️</button>` : ''}
-            ${(isOwn || currentUser.lvl === 7) ? `<button class="message-action-btn" onclick="deleteMessage('${messageId}')">🗑️</button>` : ''}
+            ${isOwn ? `<button class="message-action-btn" onclick="editMessage('${messageId}', '${escapeHtml(displayText)}')">✏️ Редактировать</button>` : ''}
+            ${(isOwn || currentUser.lvl === 7) ? `<button class="message-action-btn" onclick="deleteMessage('${messageId}')">🗑️ Удалить</button>` : ''}
         </div>
     `;
     c.appendChild(div); 
@@ -894,12 +821,9 @@ async function submitPunish(nickname) {
     let reason = document.getElementById('pr')?.value || '';
     let duration = document.getElementById('dur')?.value || '';
     let typeName = type === 'warning' ? '📝 УСТНОЕ ПРЕДУПРЕЖДЕНИЕ' : type === 'strike' ? '🔴 ВЫГОВОР' : type === 'ban' ? '🚫 БАН' : '🔇 МУТ';
-    
     if (!reason) { alert("Введите причину"); return; }
-    
     const msg = `${typeName}\n━━━━━━━━━━━━━━━━━━━━━━\n👮 Выдал: ${currentUser.nickname} (${currentUser.lvl} LVL)\n👤 Нарушитель: ${nickname}\n📝 Причина: ${reason}${duration ? `\n⏰ Срок: ${duration}` : ''}\n📅 ${new Date().toLocaleString()}`;
     socket.emit('send message', { chat: 'warnings_list', from: currentUser.nickname, text: msg, lvl: currentUser.lvl, color: rankColors[currentUser.lvl] });
-    
     if (type === 'strike') {
         await addWarningToUser(nickname, reason);
         alert(`Выговор выдан! ${getWarningCount(nickname)}/3`);
@@ -914,7 +838,17 @@ function showMembersPanel() {
     const body = document.getElementById('modalBody');
     const sorted = [...allUsers].sort((a,b) => b.lvl - a.lvl);
     if (body) {
-        body.innerHTML = `<h3>👥 Участники</h3><div>${sorted.map(u => `<div style="padding:10px;cursor:pointer;border-bottom:1px solid #00bfff33;" onclick="openUserModal('${u.nickname}')"><div style="color:#ffdd00;">${u.nickname}</div><div>${rankNames[u.lvl]} ${u.subRole||''}</div><div style="color:#ffaa33;">⚠️ ${getWarningCount(u.nickname)}/3</div></div>`).join('')}</div>`;
+        body.innerHTML = `<h3>👥 Участники</h3><div style="max-height:400px;overflow-y:auto;">${sorted.map(u => `
+            <div style="background:rgba(0,150,255,0.1); border:1px solid rgba(0,150,255,0.3); border-radius:12px; padding:12px; margin-bottom:10px; cursor:pointer;" onclick="openUserModal('${u.nickname}')">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; background:${rankColors[u.lvl]}; border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">${u.lvl}</div>
+                    <div>
+                        <div style="color:#ffdd00; font-weight:bold;">${escapeHtml(u.nickname)}</div>
+                        <div style="color:#88ccff; font-size:12px;">${rankNames[u.lvl]} ${u.subRole ? '· ' + u.subRole : ''}</div>
+                        <div style="color:#ffaa33; font-size:11px;">⚠️ ${getWarningCount(u.nickname)}/3</div>
+                    </div>
+                </div>
+            </div>`).join('')}</div>`;
     }
     if (modal) modal.style.display = 'block';
 }
@@ -936,11 +870,27 @@ function openUserModal(nickname) {
     const body = document.getElementById('modalBody');
     if (body) {
         body.innerHTML = `
-            <h3>${u.nickname}</h3>
-            <div style="text-align:center;"><span style="background:${rankColors[u.lvl]};padding:6px 20px;border-radius:30px;color:white;">${u.lvl} LVL · ${rankNames[u.lvl]}</span>${u.subRole ? `<div>📌 ${u.subRole}</div>` : ''}<div>⚠️ ${warns.length}/3</div><div style="color:${expColor};">${expRank}</div></div>
-            <p>👤 Имя: <span style="color:#ffdd00;">${u.name}</span></p><p>🎂 ДР: ${u.birthDate||'—'}</p><p>📅 Вступление: ${u.joinDate} → ${exp}</p><p>📝 ${u.comment||'—'}</p>
-            ${warns.length ? `<div style="background:#0003;border-radius:10px;padding:10px;"><strong>⚠️ Выговоры:</strong>${warns.map(w => `<div>📅 ${w.date}<br>📝 ${w.reason}<br>👮 ${w.giver}</div>`).join('')}</div>` : ''}
-            <div class="user-actions-modal">${currentUser.lvl === 7 ? `<button class="user-action-btn edit" onclick="editUser('${u.nickname}')">✏️</button><button class="user-action-btn warn" onclick="openPunishModal('${u.nickname}')">⚖️</button><button class="user-action-btn freeze" onclick="toggleFreeze('${u.nickname}')">${u.frozen ? '❄️' : '🔥'}</button>${u.nickname !== 'STORM_X' ? `<button class="user-action-btn delete" onclick="deleteUser('${u.nickname}')">❌</button>` : ''}` : '<p>👁️ Просмотр</p>'}</div>
+            <h3>${escapeHtml(u.nickname)}</h3>
+            <div style="text-align:center; margin:15px 0;">
+                <span style="background:${rankColors[u.lvl]}; padding:6px 20px; border-radius:30px; color:white;">${u.lvl} LVL · ${rankNames[u.lvl]}</span>
+                ${u.subRole ? `<div style="margin-top:8px;">📌 ${escapeHtml(u.subRole)}</div>` : ''}
+                <div style="margin-top:5px;">⚠️ ${warns.length}/3</div>
+                <div style="color:${expColor};">${expRank}</div>
+            </div>
+            <p><strong>👤 Имя:</strong> <span style="color:#ffdd00;">${escapeHtml(u.name)}</span></p>
+            <p><strong>🎂 Дата рождения:</strong> ${u.birthDate || '—'}</p>
+            <p><strong>📅 Дата вступления:</strong> ${u.joinDate} → ${exp}</p>
+            <p><strong>📝 Комментарий:</strong> ${u.comment || '—'}</p>
+            ${u.frozen ? `<p><strong>❄️ Заморожен:</strong> ${u.frozenReason || 'Без причины'}</p>` : ''}
+            ${warns.length ? `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:10px; margin-top:15px;"><strong style="color:#ffaa33;">⚠️ Выговоры (${warns.length}/3):</strong>${warns.map(w => `<div style="font-size:12px; margin-top:5px; padding:5px; border-bottom:1px solid rgba(0,191,255,0.2);">📅 ${w.date}<br>📝 ${escapeHtml(w.reason)}<br>👮 Выдал: ${w.giver}</div>`).join('')}</div>` : '<div style="margin-top:10px; color:#88aaff;">⚠️ Выговоров нет</div>'}
+            <div class="user-actions-modal">
+                ${currentUser.lvl === 7 ? `
+                    <button class="user-action-btn edit" onclick="editUser('${u.nickname}')">✏️ Редактировать</button>
+                    <button class="user-action-btn warn" onclick="openPunishModal('${u.nickname}')">⚖️ Выдать наказание</button>
+                    <button class="user-action-btn freeze" onclick="toggleFreeze('${u.nickname}')">${u.frozen ? '❄️ Разморозить' : '🔥 Заморозить'}</button>
+                    ${u.nickname !== 'STORM_X' ? `<button class="user-action-btn delete" onclick="deleteUser('${u.nickname}')">❌ Удалить</button>` : ''}
+                ` : '<p style="color:#888;">👁️ Только просмотр</p>'}
+            </div>
         `;
     }
     if (modal) modal.style.display = 'block';
@@ -960,9 +910,16 @@ function renderMembersList() {
     if (!c) return; 
     c.innerHTML = allUsers.sort((a,b) => b.lvl - a.lvl).map(u => `
         <div class="member-item" data-nickname="${u.nickname}">
-            <div class="member-rank-badge" style="background:${rankColors[u.lvl]}">${u.lvl} LVL</div>
-            <div><div class="member-nick">${u.nickname}</div><div class="member-name">${u.name}</div><div>${rankNames[u.lvl]}${u.subRole ? ` · ${u.subRole}` : ''}</div><div style="color:#ffaa33;">⚠️ ${getWarningCount(u.nickname)}/3</div></div>${u.frozen ? '❄️' : ''}
-        </div>`).join('');
+            <div class="member-rank-badge" style="background:${rankColors[u.lvl]}">${u.lvl}</div>
+            <div class="member-info">
+                <div class="member-nick">${escapeHtml(u.nickname)}</div>
+                <div class="member-name">${escapeHtml(u.name)}</div>
+                <div class="member-role">${rankNames[u.lvl]}${u.subRole ? ` · ${u.subRole}` : ''}</div>
+                <div class="member-warnings">⚠️ ${getWarningCount(u.nickname)}/3</div>
+            </div>
+            ${u.frozen ? '<div class="frozen-badge">❄️</div>' : ''}
+        </div>
+    `).join('');
     document.querySelectorAll('.member-item').forEach(el => el.addEventListener('click', () => openUserModal(el.dataset.nickname)));
 }
 
@@ -970,16 +927,15 @@ function openAddUserModal() {
     if (currentUser.lvl !== 7) return; 
     const modal = document.getElementById('modal'); 
     if (modal) {
-        modal.innerHTML = `<div class="modal-content"><span class="modal-close">&times;</span><div id="modalBody"><h3>➕ Добавить</h3><label>Ник:</label><input id="addNickname"><label>Имя:</label><input id="addName"><label>Пароль:</label><input id="addPassword"><label>Ранг:</label><select id="addLvl"><option value="1">Гость</option><option value="2">Squad 545</option><option value="3">Трудовой состав</option><option value="4">Ураган</option><option value="5">Модератор</option><option value="6">Админ</option></select><label>Подроль:</label><input id="addSubRole"><label>ДР:</label><input id="addBirthDate"><label>Коммент:</label><textarea id="addComment"></textarea><label>Дата вступления:</label><input id="addJoinDate" placeholder="ДД.ММ.ГГГГ"><button onclick="submitAddUser()">✅ Добавить</button></div></div>`; 
+        modal.innerHTML = `<div class="modal-content"><span class="modal-close">&times;</span><div id="modalBody"><h3>➕ Добавить участника</h3><label>Ник (логин):</label><input id="addNickname"><label>Имя:</label><input id="addName"><label>Пароль:</label><input id="addPassword" type="text"><label>Ранг:</label><select id="addLvl"><option value="1">Гость</option><option value="2">Squad 545</option><option value="3">Трудовой состав</option><option value="4">Команда Ураган</option><option value="5">Модератор</option><option value="6">Администратор</option></select><label>Подроль (должность):</label><input id="addSubRole" placeholder="Монтажёр, Художник..."><label>Дата рождения:</label><input id="addBirthDate" placeholder="ДД.ММ.ГГГГ"><label>Комментарий:</label><textarea id="addComment" rows="2"></textarea><label>📅 Дата вступления (оставьте пустым для автоматической):</label><input id="addJoinDate" placeholder="ДД.ММ.ГГГГ"><button onclick="submitAddUser()">✅ Добавить участника</button></div></div>`; 
         modal.style.display = 'block'; 
-        const closeSpan = document.querySelector('.modal-close');
-        if (closeSpan) closeSpan.onclick = closeModal;
+        document.querySelector('.modal-close').onclick = closeModal;
     }
 }
 
 async function submitAddUser() { 
-    let jd = document.getElementById('addJoinDate')?.value; 
-    if (!jd) jd = new Date().toLocaleDateString(); 
+    let joinDate = document.getElementById('addJoinDate')?.value;
+    if (!joinDate || joinDate.trim() === '') joinDate = new Date().toLocaleDateString();
     const data = { 
         nickname: document.getElementById('addNickname')?.value, 
         name: document.getElementById('addName')?.value, 
@@ -988,61 +944,81 @@ async function submitAddUser() {
         subRole: document.getElementById('addSubRole')?.value, 
         birthDate: document.getElementById('addBirthDate')?.value, 
         comment: document.getElementById('addComment')?.value, 
-        joinDate: jd 
-    }; 
-    const res = await fetch('/api/addUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); 
-    const result = await res.json(); 
-    if (result.success) { closeModal(); loadMembers(); buildMenu(); alert("Добавлено!"); } 
-    else alert(result.error); 
+        joinDate: joinDate
+    };
+    const res = await fetch('/api/addUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const result = await res.json();
+    if (result.success) { closeModal(); loadMembers(); buildMenu(); alert("Пользователь успешно добавлен!"); }
+    else alert(result.error);
 }
 
 function editUser(nickname) { 
-    const u = allUsers.find(u => u.nickname === nickname); 
-    const b = document.getElementById('modalBody'); 
-    if (b) {
-        b.innerHTML = `<h3>✏️ Редакт ${nickname}</h3><label>Имя:</label><input id="editName" value="${u.name}"><label>Ранг:</label><select id="editLvl">${[1,2,3,4,5,6,7].map(l => `<option value="${l}" ${u.lvl === l ? 'selected' : ''}>${rankNames[l]}</option>`).join('')}</select><label>Подроль:</label><input id="editSubRole" value="${u.subRole||''}"><label>ДР:</label><input id="editBirthDate" value="${u.birthDate||''}"><label>Коммент:</label><textarea id="editComment">${u.comment||''}</textarea><label>Дата вступления:</label><input id="editJoinDate" value="${u.joinDate}"><button onclick="submitEditUser('${nickname}')">💾 Сохранить</button>`; 
+    if (currentUser.lvl !== 7) return;
+    const user = allUsers.find(u => u.nickname === nickname);
+    const modalBody = document.getElementById('modalBody');
+    if (modalBody) {
+        modalBody.innerHTML = `
+            <h3>✏️ Редактировать ${nickname}</h3>
+            <label>Имя:</label><input id="editName" value="${user.name}">
+            <label>Ранг:</label><select id="editLvl">${[1,2,3,4,5,6,7].map(l => `<option value="${l}" ${user.lvl === l ? 'selected' : ''}>${rankNames[l]}</option>`).join('')}</select>
+            <label>Подроль:</label><input id="editSubRole" value="${user.subRole || ''}">
+            <label>Дата рождения:</label><input id="editBirthDate" value="${user.birthDate || ''}">
+            <label>Комментарий:</label><textarea id="editComment" rows="2">${user.comment || ''}</textarea>
+            <label>Дата вступления:</label><input id="editJoinDate" value="${user.joinDate}">
+            <button onclick="submitEditUser('${nickname}')">💾 Сохранить</button>
+        `;
     }
 }
 
 async function submitEditUser(nickname) { 
-    const data = { nickname, name: document.getElementById('editName')?.value, lvl: document.getElementById('editLvl')?.value, subRole: document.getElementById('editSubRole')?.value, birthDate: document.getElementById('editBirthDate')?.value, comment: document.getElementById('editComment')?.value, joinDate: document.getElementById('editJoinDate')?.value }; 
-    const res = await fetch('/api/editUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); 
-    const result = await res.json(); 
-    if (result.success) { closeModal(); loadMembers(); buildMenu(); alert("Сохранено!"); } 
-    else alert(result.error); 
+    const data = { 
+        nickname, 
+        name: document.getElementById('editName')?.value, 
+        lvl: document.getElementById('editLvl')?.value, 
+        subRole: document.getElementById('editSubRole')?.value, 
+        birthDate: document.getElementById('editBirthDate')?.value, 
+        comment: document.getElementById('editComment')?.value, 
+        joinDate: document.getElementById('editJoinDate')?.value 
+    };
+    const res = await fetch('/api/editUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const result = await res.json();
+    if (result.success) { closeModal(); loadMembers(); buildMenu(); alert("Изменения сохранены!"); }
+    else alert(result.error);
 }
 
-async function toggleFreeze(nickname, reason = null) { 
-    let r = reason; 
-    if (!r) r = prompt('Причина заморозки:'); 
-    if (!r) return; 
-    const res = await fetch('/api/toggleFreeze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname, reason: r }) }); 
-    const result = await res.json(); 
-    if (result.success) { closeModal(); loadMembers(); } 
-    else alert(result.error); 
+async function toggleFreeze(nickname, customReason = null) { 
+    if (currentUser.lvl !== 7) return;
+    let reason = customReason;
+    if (!reason) reason = prompt('Причина заморозки:\n- Аккаунт в "Отпуске"\n- Аккаунт взломан\n- Странные активности', 'Аккаунт в "Отпуске"');
+    if (!reason) return;
+    const res = await fetch('/api/toggleFreeze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname, reason }) });
+    const result = await res.json();
+    if (result.success) { closeModal(); loadMembers(); alert(result.action === 'frozen' ? "Аккаунт заморожен" : "Аккаунт разморожен"); }
+    else alert(result.error);
 }
 
 function deleteUser(nickname) { 
-    if (confirm(`Удалить ${nickname}?`)) { 
-        fetch('/api/deleteUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname }) }).then(r => r.json()).then(result => { if (result.success) { closeModal(); loadMembers(); alert("Удалён"); } else alert(result.error); }); 
-    } 
+    if (currentUser.lvl !== 7) return;
+    if (nickname === 'STORM_X') { alert("Нельзя удалить владельца"); return; }
+    if (confirm(`Вы уверены, что хотите удалить пользователя ${nickname}?`)) { 
+        fetch('/api/deleteUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname }) })
+            .then(r => r.json()).then(result => { if (result.success) { closeModal(); loadMembers(); alert("Пользователь удалён"); } else alert(result.error); });
+    }
 }
 
 function closeModal() { 
     const modal = document.getElementById('modal');
-    if (modal) modal.style.display = 'none'; 
+    if (modal) modal.style.display = 'none';
 }
 
 // ===== ЗАПУСК =====
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) logoutBtn.addEventListener('click', () => window.location.href = '/logout');
+document.getElementById('logoutBtn')?.addEventListener('click', () => window.location.href = '/logout');
 window.addEventListener('resize', () => setupMobile());
 
 document.addEventListener('DOMContentLoaded', async () => { 
     await loadUser(); 
-    const addMemberBtn = document.getElementById('addMemberBtn');
-    if (addMemberBtn) addMemberBtn.addEventListener('click', openAddUserModal); 
+    document.getElementById('addMemberBtn')?.addEventListener('click', openAddUserModal); 
     const modalClose = document.querySelector('.modal-close');
-    if (modalClose) modalClose.addEventListener('click', closeModal); 
-    window.onclick = e => { if (e.target === document.getElementById('modal')) closeModal(); }; 
+    if (modalClose) modalClose.addEventListener('click', closeModal);
+    window.onclick = e => { if (e.target === document.getElementById('modal')) closeModal(); };
 });
