@@ -1,1 +1,97 @@
-
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squad_STORM_Link - Спецсвязь</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Левая боковая панель - чаты -->
+        <div class="sidebar-left">
+            <div class="user-profile" id="userProfile">
+                <div class="user-rank" id="userRankBadge">?</div>
+                <div class="user-info">
+                    <div class="user-nick" id="userNick">Загрузка...</div>
+                    <div class="user-name" id="userName"></div>
+                </div>
+                <div class="user-actions">
+                    <button id="logoutBtn" class="logout-btn" title="Выйти">🚪</button>
+                </div>
+            </div>
+            
+            <div class="chats-list">
+                <div class="chat-category">Основные каналы</div>
+                <div class="chat-item" data-chat="info">
+                    <span class="chat-icon">📢</span>
+                    <span class="chat-name">Информация</span>
+                </div>
+                <div class="chat-item" data-chat="announcements">
+                    <span class="chat-icon">📣</span>
+                    <span class="chat-name">Объявления</span>
+                </div>
+                <div class="chat-item" data-chat="warnings">
+                    <span class="chat-icon">⚠️</span>
+                    <span class="chat-name">Выговоры</span>
+                </div>
+                
+                <div class="chat-category">Командные</div>
+                <div class="chat-item" data-chat="squad545">
+                    <span class="chat-icon">🟢</span>
+                    <span class="chat-name">Squad 545</span>
+                </div>
+                <div class="chat-item" data-chat="hurricane">
+                    <span class="chat-icon">🟣</span>
+                    <span class="chat-name">Команда Ураган</span>
+                </div>
+                
+                <div class="chat-category">Трудовой состав</div>
+                <div class="chat-item" data-chat="general">
+                    <span class="chat-icon">💼</span>
+                    <span class="chat-name">Общий чат</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Центральная панель - чат -->
+        <div class="chat-main">
+            <div class="chat-header" id="chatHeader">
+                <span id="currentChatName">Информация</span>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">
+                    Добро пожаловать в Squad_STORM_Link<br>
+                    <small>Выберите чат слева</small>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off">
+                <button id="sendBtn">📤</button>
+            </div>
+        </div>
+        
+        <!-- Правая боковая панель - участники (только для LVL 7) -->
+        <div class="sidebar-right" id="sidebarRight">
+            <div class="members-header">
+                <span>Участники</span>
+                <button id="addMemberBtn" class="add-member-btn" title="Добавить участника">➕</button>
+            </div>
+            <div class="members-list" id="membersList">
+                <!-- Список участников -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно для редактирования/добавления -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
