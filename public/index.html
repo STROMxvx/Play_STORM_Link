@@ -8,52 +8,38 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- ЛЕВАЯ БОКОВАЯ ПАНЕЛЬ -->
         <div class="sidebar-left">
-            <div class="user-profile" id="userProfile">
+            <div class="user-profile">
                 <div class="user-rank" id="userRankBadge">?</div>
                 <div class="user-info">
                     <div class="user-nick" id="userNick">Загрузка...</div>
                     <div class="user-name" id="userName"></div>
                 </div>
-                <div class="user-actions">
-                    <button id="logoutBtn" class="logout-btn" title="Выйти">🚪</button>
-                </div>
+                <button id="logoutBtn" class="logout-btn" title="Выйти">🚪</button>
             </div>
-            
-            <div class="chats-list" id="chatsList">
-                <!-- Меню будет построено через JS -->
-            </div>
+            <div class="chats-list" id="chatsList"></div>
         </div>
         
-        <!-- ЦЕНТРАЛЬНАЯ ПАНЕЛЬ (ЧАТ) -->
         <div class="chat-main">
-            <div class="chat-header" id="chatHeader">
+            <div class="chat-header">
                 <span id="currentChatName">Информация</span>
             </div>
-            <div class="chat-messages" id="chatMessages">
-                <div class="welcome-message">
-                    ⚡ Добро пожаловать в Squad_STORM_Link ⚡<br>
-                    <small>Выберите чат слева</small>
-                </div>
-            </div>
-            <div class="chat-input-area">
-                <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off">
-                <button id="sendBtn">📤 Отправить</button>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area" id="chatInputArea">
+                <input type="text" id="messageInput" placeholder="Введите сообщение...">
+                <button id="sendBtn">📤</button>
             </div>
         </div>
         
-        <!-- ПРАВАЯ ПАНЕЛЬ (УЧАСТНИКИ) - ТОЛЬКО LVL7 -->
         <div class="sidebar-right" id="sidebarRight" style="display: none;">
             <div class="members-header">
                 <span>👥 Участники</span>
-                <button id="addMemberBtn" class="add-member-btn" title="Добавить участника">➕</button>
+                <button id="addMemberBtn" class="add-member-btn">➕</button>
             </div>
             <div class="members-list" id="membersList"></div>
         </div>
     </div>
     
-    <!-- МОДАЛЬНОЕ ОКНО -->
     <div id="modal" class="modal">
         <div class="modal-content">
             <span class="modal-close">&times;</span>
