@@ -3,26 +3,12 @@ let currentUser = null;
 let currentChat = 'info_chat';
 let allUsers = [];
 let complaintsCounter = 1;
-
-const rankColors = { 
-    1: '#ffffff', 
-    2: '#00ff88', 
-    3: '#00ccff', 
-    4: '#aa66ff', 
-    5: '#ffaa33', 
-    6: '#ff3366', 
-    7: '#111111' 
-};
-
-const rankNames = { 
-    1: 'Гость', 
-    2: 'Squad 545', 
-    3: 'Трудовой состав', 
-    4: 'Команда Ураган', 
-    5: 'Модератор', 
-    6: 'Администратор', 
-    7: 'Владелец' 
-};
+let currentReplyTo = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let recordingStartTime = null;
+let recordingTimerInterval = null;
 
 let userWarnings = {};
 
@@ -70,7 +56,7 @@ const dutiesText = `<div style="padding:10px; color:#ffffff; text-shadow:0 0 2px
     </div>
 </div>`;
 
-// ===== ФУНКЦИЯ ДЛЯ ГЕНЕРАЦИИ ЧАТА ОПЫТ =====
+// ===== ГЕНЕРАЦИЯ ЧАТА ОПЫТ (все ранги своими цветами) =====
 function generateExperienceText() {
     const now = new Date();
     const currentDate = now.toLocaleString('ru-RU');
@@ -172,7 +158,7 @@ const menuStructure = [
                 subitems: [
                     { id: "members_list", name: "👥 Участники", action: "showMembers" },
                     { id: "warnings_list", name: "⚠️ Выговоры", isChat: true, readOnly: true },
-                    { id: "complaints", name: "📋 Жалобы", isChat: true },
+                    { id: "complaints", name: "📋 Жалобы", isChat: true, isComplaint: true },
                     { id: "ideas", name: "💡 Идеи", isChat: true },
                     { id: "tasks", name: "📌 Задачи", isChat: true },
                     { id: "rules", name: "📜 Правила", isChat: true, readOnly: true },
@@ -269,6 +255,10 @@ const chatNames = {
     guest_call: '🎙️ Гостевой'
 };
 
+// Хранилище сообщений для редактирования/удаления/ответов
+let currentMessages = [];
+let editingMessageId = null;
+
 // ===== ЗАГРУЗКА ПОЛЬЗОВАТЕЛЯ =====
 async function loadUser() {
     try {
@@ -294,6 +284,8 @@ async function loadUser() {
         await loadWarnings();
         buildMenu();
         setupMobile();
+        setupVoiceRecording();
+        setupFileUpload();
     } catch (err) {
         console.error('Ошибка загрузки пользователя:', err);
         window.location.href = '/login.html';
@@ -305,37 +297,143 @@ function setupMobile() {
     const isMobile = window.innerWidth <= 768;
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const mobileUsersBtn = document.getElementById('mobileUsersBtn');
+    const mobileOverlay = document.getElementById('mobileOverlay');
     const sidebarLeft = document.getElementById('sidebarLeft');
     const sidebarRight = document.getElementById('sidebarRight');
     
     if (isMobile) {
-        if (mobileMenuBtn) mobileMenuBtn.style.display = 'flex';
-        if (mobileUsersBtn) mobileUsersBtn.style.display = 'flex';
-        
         if (mobileMenuBtn) {
             mobileMenuBtn.onclick = () => {
                 sidebarLeft.classList.toggle('open');
                 if (sidebarRight.classList.contains('open')) sidebarRight.classList.remove('open');
+                if (mobileOverlay) mobileOverlay.classList.toggle('active');
             };
         }
         if (mobileUsersBtn) {
             mobileUsersBtn.onclick = () => {
                 sidebarRight.classList.toggle('open');
                 if (sidebarLeft.classList.contains('open')) sidebarLeft.classList.remove('open');
+                if (mobileOverlay) mobileOverlay.classList.toggle('active');
             };
         }
-        document.addEventListener('click', (e) => {
-            if (!sidebarLeft.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        if (mobileOverlay) {
+            mobileOverlay.onclick = () => {
                 sidebarLeft.classList.remove('open');
-            }
-            if (!sidebarRight.contains(e.target) && !mobileUsersBtn.contains(e.target)) {
                 sidebarRight.classList.remove('open');
-            }
-        });
-    } else {
-        if (mobileMenuBtn) mobileMenuBtn.style.display = 'none';
-        if (mobileUsersBtn) mobileUsersBtn.style.display = 'none';
+                mobileOverlay.classList.remove('active');
+            };
+        }
     }
+}
+
+// ===== ГОЛОСОВЫЕ СООБЩЕНИЯ =====
+function setupVoiceRecording() {
+    const voiceBtn = document.getElementById('voiceBtn');
+    const recordingIndicator = document.getElementById('recordingIndicator');
+    const messageInput = document.getElementById('messageInput');
+    
+    if (!voiceBtn) return;
+    
+    voiceBtn.onmousedown = async () => {
+        if (isRecording) return;
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+            
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const audioUrl = reader.result;
+                    sendMessage(audioUrl, 'audio');
+                };
+                reader.readAsDataURL(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+                recordingIndicator.classList.remove('active');
+                messageInput.placeholder = "Введите сообщение...";
+                isRecording = false;
+                if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+            };
+            
+            mediaRecorder.start();
+            isRecording = true;
+            recordingStartTime = Date.now();
+            recordingIndicator.classList.add('active');
+            messageInput.placeholder = "🎙️ Запись... Отпустите для отправки";
+            
+            recordingTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('recordingTimer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        } catch (err) {
+            alert("Нет доступа к микрофону");
+        }
+    };
+    
+    voiceBtn.onmouseup = () => {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+        }
+    };
+    
+    voiceBtn.onmouseleave = () => {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+        }
+    };
+}
+
+// ===== ЗАГРУЗКА ФАЙЛОВ =====
+function setupFileUpload() {
+    const attachBtn = document.getElementById('attachBtn');
+    if (!attachBtn) return;
+    
+    attachBtn.onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,video/*,application/pdf,.txt,.doc,.docx';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const progressDiv = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const percentSpan = document.getElementById('uploadPercent');
+            progressDiv.classList.add('active');
+            
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const fileData = reader.result;
+                const fileInfo = {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    data: fileData
+                };
+                sendMessage(JSON.stringify(fileInfo), 'file');
+                progressDiv.classList.remove('active');
+            };
+            
+            reader.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    percentSpan.textContent = percent;
+                    progressBar.value = percent;
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    };
 }
 
 // ===== ВЫГОВОРЫ =====
@@ -437,21 +535,23 @@ function toggleSubmenu(parentId) {
 function switchChat(chatId) {
     currentChat = chatId; 
     buildMenu();
+    currentReplyTo = null;
+    editingMessageId = null;
     
     document.getElementById('currentChatName').innerHTML = chatNames[chatId] || chatId;
     
     const inputArea = document.getElementById('chatInputArea');
+    const isComplaintChat = chatId === 'complaints';
     const isReadOnlyChat = ['rules', 'duties', 'experience', 'warnings_list'].includes(chatId);
     
-    if (chatId === 'complaints') {
+    if (isComplaintChat) {
+        // В чате жалоб - только кнопка жалобы, без поля ввода текста
         inputArea.innerHTML = `
-            <input type="text" id="messageInput" placeholder="Введите сообщение..." style="flex:1;padding:12px;background:#0a1e3a;border:1px solid #00bfff;border-radius:30px;color:#ffdd00">
-            <button id="complaintBtn" style="padding:12px 24px;background:#ff3366;border:none;border-radius:30px;color:white;font-weight:bold">📋 Подать жалобу</button>
-            <button id="sendBtn" style="padding:12px 24px;background:#00bfff;border:none;border-radius:30px">📤</button>
+            <div style="width:100%; display:flex; justify-content:center;">
+                <button id="complaintBtn" style="padding:12px 24px; background:#ff3366; border:none; border-radius:30px; color:white; font-weight:bold; width:100%;">📋 Подать жалобу</button>
+            </div>
         `;
         document.getElementById('complaintBtn')?.addEventListener('click', openComplaintModal);
-        document.getElementById('sendBtn')?.addEventListener('click', sendMessage);
-        document.getElementById('messageInput')?.addEventListener('keypress', e => { if(e.key === 'Enter') sendMessage(); });
     } 
     else if (isReadOnlyChat) {
         if (currentUser.lvl === 7 && chatId !== 'warnings_list') {
@@ -476,12 +576,23 @@ function switchChat(chatId) {
         }
     } 
     else {
+        // Обычный чат с полной панелью ввода
         inputArea.innerHTML = `
-            <input type="text" id="messageInput" placeholder="Введите сообщение..." style="flex:1;padding:12px;background:#0a1e3a;border:1px solid #00bfff;border-radius:30px;color:#ffdd00">
-            <button id="sendBtn" style="padding:12px 24px;background:#00bfff;border:none;border-radius:30px">📤</button>
+            <div class="input-buttons">
+                <button id="attachBtn" class="input-btn" title="Прикрепить файл">📎</button>
+                <button id="voiceBtn" class="input-btn" title="Голосовое сообщение">🎤</button>
+            </div>
+            <div class="recording-indicator" id="recordingIndicator">
+                <span>🔴 Запись...</span>
+                <span class="recording-timer" id="recordingTimer">0:00</span>
+            </div>
+            <input type="text" id="messageInput" placeholder="Введите сообщение...">
+            <button id="sendBtn">📤</button>
         `;
-        document.getElementById('sendBtn')?.addEventListener('click', sendMessage);
+        document.getElementById('sendBtn')?.addEventListener('click', () => sendMessage());
         document.getElementById('messageInput')?.addEventListener('keypress', e => { if(e.key === 'Enter') sendMessage(); });
+        setupVoiceRecording();
+        setupFileUpload();
     }
     
     document.getElementById('chatMessages').innerHTML = '<div class="welcome-message">Загрузка...</div>';
@@ -499,6 +610,70 @@ function switchChat(chatId) {
         }, 60000);
     } else { 
         socket.emit('join chat', chatId); 
+    }
+}
+
+// ===== ОТПРАВКА СООБЩЕНИЯ (с поддержкой файлов, голоса, ответов) =====
+function sendMessage(customContent, contentType = 'text') {
+    const input = document.getElementById('messageInput');
+    let text = customContent || (input ? input.value.trim() : '');
+    
+    if (!text && contentType === 'text') return;
+    
+    let finalText = text;
+    if (contentType === 'audio') {
+        finalText = `[🎤 Голосовое сообщение](${text})`;
+    } else if (contentType === 'file') {
+        finalText = `[📎 Файл](${text})`;
+    }
+    
+    if (currentReplyTo) {
+        finalText = `📌 Ответ на сообщение от ${currentReplyTo.from}: "${currentReplyTo.text.substring(0, 50)}"\n━━━━━━━━━━━━━━━━\n${finalText}`;
+        currentReplyTo = null;
+    }
+    
+    const messageData = {
+        chat: currentChat,
+        from: currentUser.nickname,
+        text: finalText,
+        lvl: currentUser.lvl,
+        color: rankColors[currentUser.lvl],
+        timestamp: Date.now()
+    };
+    
+    if (editingMessageId) {
+        messageData.editId = editingMessageId;
+        messageData.newText = finalText;
+        editingMessageId = null;
+    }
+    
+    socket.emit('send message', messageData);
+    if (input) input.value = '';
+}
+
+// ===== РЕДАКТИРОВАНИЕ СООБЩЕНИЯ =====
+function editMessage(messageId, currentText) {
+    const newText = prompt("Редактировать сообщение:", currentText);
+    if (newText && newText.trim()) {
+        socket.emit('edit message', { id: messageId, chat: currentChat, text: newText, from: currentUser.nickname });
+    }
+}
+
+// ===== УДАЛЕНИЕ СООБЩЕНИЯ =====
+function deleteMessage(messageId) {
+    if (confirm("Удалить сообщение?")) {
+        socket.emit('delete message', { id: messageId, chat: currentChat, from: currentUser.nickname, isAdmin: currentUser.lvl === 7 });
+    }
+}
+
+// ===== ОТВЕТ НА СООБЩЕНИЕ =====
+function replyToMessage(from, text) {
+    currentReplyTo = { from, text };
+    const input = document.getElementById('messageInput');
+    if (input) {
+        input.focus();
+        input.placeholder = `📌 Ответ ${from}...`;
+        setTimeout(() => { input.placeholder = "Введите сообщение..."; }, 3000);
     }
 }
 
@@ -544,6 +719,7 @@ function submitComplaint() {
 
 // ===== СОКЕТЫ =====
 socket.on('chat history', (msgs) => { 
+    currentMessages = msgs || [];
     const c = document.getElementById('chatMessages'); 
     c.innerHTML = ''; 
     if (!msgs || msgs.length === 0) { 
@@ -553,25 +729,74 @@ socket.on('chat history', (msgs) => {
     msgs.forEach(m => addMessageToChat(m)); 
 });
 
-socket.on('new message', (m) => addMessageToChat(m));
+socket.on('new message', (m) => {
+    currentMessages.push(m);
+    addMessageToChat(m);
+});
+
+socket.on('message edited', (data) => {
+    const msgElement = document.querySelector(`.message[data-id="${data.id}"] .message-text`);
+    if (msgElement) msgElement.innerHTML = escapeHtml(data.newText);
+});
+
+socket.on('message deleted', (data) => {
+    const msgElement = document.querySelector(`.message[data-id="${data.id}"]`);
+    if (msgElement) msgElement.remove();
+});
 
 function addMessageToChat(m) {
     const c = document.getElementById('chatMessages');
     const isOwn = m.from === currentUser.nickname;
+    const messageId = m.timestamp || Date.now() + Math.random();
+    
+    // Обработка файлов и голосовых
+    let displayText = m.text;
+    let filePreview = '';
+    
+    if (m.text.startsWith('[🎤 Голосовое сообщение]')) {
+        const audioUrl = m.text.match(/\(([^)]+)\)/)?.[1];
+        if (audioUrl) {
+            displayText = '';
+            filePreview = `<audio controls src="${audioUrl}" style="max-width:100%; border-radius:20px;"></audio>`;
+        }
+    } else if (m.text.startsWith('[📎 Файл]')) {
+        const fileData = m.text.match(/\(([^)]+)\)/)?.[1];
+        if (fileData) {
+            try {
+                const fileInfo = JSON.parse(fileData);
+                if (fileInfo.type.startsWith('image/')) {
+                    filePreview = `<img src="${fileInfo.data}" style="max-width:200px; max-height:200px; border-radius:10px; cursor:pointer;" onclick="window.open('${fileInfo.data}')">`;
+                    displayText = '';
+                } else if (fileInfo.type.startsWith('video/')) {
+                    filePreview = `<video controls src="${fileInfo.data}" style="max-width:200px; border-radius:10px;"></video>`;
+                    displayText = '';
+                } else {
+                    filePreview = `<a href="${fileInfo.data}" download="${fileInfo.name}" style="color:#88ccff;">📎 ${fileInfo.name} (${Math.round(fileInfo.size/1024)} KB)</a>`;
+                    displayText = '';
+                }
+            } catch(e) { displayText = m.text; }
+        }
+    }
+    
     const div = document.createElement('div'); 
     div.className = `message ${isOwn ? 'own' : ''}`;
-    div.innerHTML = `<div class="message-header"><span class="message-rank" style="background:${m.color || '#333'}">${m.lvl} LVL</span><span class="message-from">${escapeHtml(m.from)}</span><span class="message-time">${m.time}</span></div><div class="message-text" style="white-space:pre-wrap;">${escapeHtml(m.text)}</div>`;
+    div.setAttribute('data-id', messageId);
+    div.innerHTML = `
+        <div class="message-header">
+            <span class="message-rank" style="background:${m.color || rankColors[m.lvl]}">${m.lvl} LVL</span>
+            <span class="message-from">${escapeHtml(m.from)}</span>
+            <span class="message-time">${m.time}</span>
+        </div>
+        ${filePreview}
+        <div class="message-text" style="white-space:pre-wrap;">${escapeHtml(displayText)}</div>
+        <div class="message-actions">
+            <button class="message-action-btn" onclick="replyToMessage('${escapeHtml(m.from)}', '${escapeHtml(displayText.substring(0, 50))}')">↩️ Ответить</button>
+            ${isOwn ? `<button class="message-action-btn" onclick="editMessage('${messageId}', '${escapeHtml(displayText)}')">✏️</button>` : ''}
+            ${(isOwn || currentUser.lvl === 7) ? `<button class="message-action-btn" onclick="deleteMessage('${messageId}')">🗑️</button>` : ''}
+        </div>
+    `;
     c.appendChild(div); 
     c.scrollTop = c.scrollHeight;
-}
-
-function sendMessage() { 
-    const i = document.getElementById('messageInput'); 
-    if (!i) return; 
-    const t = i.value.trim(); 
-    if (!t) return; 
-    socket.emit('send message', { chat: currentChat, from: currentUser.nickname, text: t, lvl: currentUser.lvl, color: rankColors[currentUser.lvl] }); 
-    i.value = ''; 
 }
 
 function escapeHtml(s) { 
