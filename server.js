@@ -20,7 +20,7 @@ app.use(session({
     cookie: { maxAge: 1000 * 60 * 60 * 24 } // 24 часа
 }));
 
-// ===== БАЗА ДАННЫХ (в памяти, потом переделаем на файл) =====
+// ===== БАЗА ДАННЫХ (в памяти) =====
 const users = {
     'STORM_X': {
         password: bcrypt.hashSync('xVgoogYu545@stojj0', 10),
@@ -40,12 +40,12 @@ const users = {
 // Ранги и их цвета
 const rankColors = {
     1: '#ffffff',  // Гость - белый
-    2: '#00ff00',  // Squad 545 - зелёный
-    3: '#00bfff',  // Трудовой состав - голубой
-    4: '#aa00ff',  // Команда Ураган - фиолетовый
-    5: '#ff8c00',  // Модератор - оранжевый
-    6: '#dc143c',  // Админ - красивый красный
-    7: '#000000'   // Владелец - чёрный
+    2: '#00ff88',  // Squad 545 - зелёный
+    3: '#00ccff',  // Трудовой состав - голубой
+    4: '#aa66ff',  // Команда Ураган - фиолетовый
+    5: '#ffaa33',  // Модератор - оранжевый
+    6: '#ff3366',  // Админ - красивый красный
+    7: '#111111'   // Владелец - чёрный
 };
 
 const rankNames = {
@@ -57,6 +57,43 @@ const rankNames = {
     6: 'Администратор',
     7: 'Владелец'
 };
+
+// ===== ВСЕ ЧАТЫ И КАНАЛЫ =====
+const messages = {
+    // Основные чаты
+    info: [],
+    announcements: [],
+    warnings: [],
+    squad545: [],
+    hurricane: [],
+    moderators: [],
+    ideas: [],
+    complaints: [],
+    tasks: [],
+    
+    // Трудовой состав (подкатегории)
+    labor_general: [],
+    editor: [],
+    artist: [],
+    animator: [],
+    costumer: [],
+    grinder: [],
+    searcher: [],
+    builder: [],
+    coder: [],
+    
+    // Звонки (каналы)
+    guest_call: [],
+    squad545_call: [],
+    record1: [],
+    record2: [],
+    record4: [],
+    stream: [],
+    workers_meet: [],
+    moderators_meet: [],
+    admin_channel: []
+};
+
 // ===== МИДЛВЕР ДЛЯ ПРОВЕРКИ АВТОРИЗАЦИИ =====
 function authRequired(req, res, next) {
     if (!req.session.user) {
@@ -76,6 +113,10 @@ app.get('/api/me', (req, res) => {
         return res.json({ error: 'not authorized' });
     }
     const user = users[req.session.user.nickname];
+    if (!user) {
+        req.session.destroy();
+        return res.json({ error: 'user not found' });
+    }
     res.json({
         nickname: user.nickname,
         name: user.name,
@@ -87,7 +128,7 @@ app.get('/api/me', (req, res) => {
     });
 });
 
-// ===== API: ПОЛУЧИТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (для панели владельца) =====
+// ===== API: ПОЛУЧИТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (только LVL 7) =====
 app.get('/api/users', (req, res) => {
     if (!req.session.user || users[req.session.user.nickname]?.lvl !== 7) {
         return res.json({ error: 'access denied' });
@@ -100,6 +141,7 @@ app.get('/api/users', (req, res) => {
         subRole: u.subRole,
         color: rankColors[u.lvl],
         frozen: u.frozen,
+        frozenReason: u.frozenReason,
         birthDate: u.birthDate,
         comment: u.comment,
         joinDate: u.joinDate
@@ -115,6 +157,10 @@ app.post('/api/addUser', (req, res) => {
     
     const { nickname, name, lvl, subRole, birthDate, comment, password } = req.body;
     
+    if (!nickname || !name || !password) {
+        return res.json({ error: 'Заполните ник, имя и пароль' });
+    }
+    
     if (users[nickname]) {
         return res.json({ error: 'Пользователь с таким ником уже существует' });
     }
@@ -126,7 +172,7 @@ app.post('/api/addUser', (req, res) => {
         lvl: parseInt(lvl),
         role: rankNames[lvl],
         subRole: subRole || null,
-        birthDate: birthDate,
+        birthDate: birthDate || '',
         comment: comment || '',
         joinDate: new Date().toLocaleDateString(),
         frozen: false,
@@ -136,7 +182,7 @@ app.post('/api/addUser', (req, res) => {
     res.json({ success: true, message: 'Пользователь добавлен' });
 });
 
-// ===== API: РЕДАКТИРОВАТЬ ПОЛЬЗОВАТЕЛЯ =====
+// ===== API: РЕДАКТИРОВАТЬ ПОЛЬЗОВАТЕЛЯ (только LVL 7) =====
 app.post('/api/editUser', (req, res) => {
     if (!req.session.user || users[req.session.user.nickname]?.lvl !== 7) {
         return res.json({ error: 'access denied' });
@@ -152,7 +198,7 @@ app.post('/api/editUser', (req, res) => {
     users[nickname].lvl = parseInt(lvl);
     users[nickname].role = rankNames[lvl];
     users[nickname].subRole = subRole || null;
-    users[nickname].birthDate = birthDate;
+    users[nickname].birthDate = birthDate || '';
     users[nickname].comment = comment || '';
     
     res.json({ success: true });
@@ -176,7 +222,7 @@ app.post('/api/toggleFreeze', (req, res) => {
         res.json({ success: true, action: 'unfrozen' });
     } else {
         users[nickname].frozen = true;
-        users[nickname].frozenReason = reason;
+        users[nickname].frozenReason = reason || 'Без причины';
         res.json({ success: true, action: 'frozen', reason: reason });
     }
 });
@@ -229,44 +275,51 @@ app.get('/logout', (req, res) => {
 });
 
 // ===== СОКЕТЫ ДЛЯ ЧАТА =====
-const messages = {
-    info: [],
-    announcements: [],
-    warnings: [],
-    squad545: [],
-    hurricane: [],
-    general: []
-};
-
 io.on('connection', (socket) => {
-    console.log('Сокет подключён');
+    console.log('🔌 Сокет подключён');
     
     socket.on('join chat', (chatName) => {
+        if (!messages[chatName]) {
+            messages[chatName] = [];
+        }
         socket.join(chatName);
         socket.currentChat = chatName;
-        socket.emit('chat history', messages[chatName] || []);
+        socket.emit('chat history', messages[chatName]);
+        console.log(`📡 ${socket.id} присоединился к чату: ${chatName}`);
     });
     
     socket.on('send message', (data) => {
-        if (!messages[data.chat]) messages[data.chat] = [];
-        messages[data.chat].push({
+        if (!data.chat || !messages[data.chat]) {
+            console.log('❌ Неизвестный чат:', data.chat);
+            return;
+        }
+        
+        const message = {
             from: data.from,
             text: data.text,
             time: new Date().toLocaleTimeString(),
             lvl: data.lvl,
             color: data.color
-        });
-        io.to(data.chat).emit('new message', {
-            from: data.from,
-            text: data.text,
-            time: new Date().toLocaleTimeString(),
-            lvl: data.lvl,
-            color: data.color
-        });
+        };
+        
+        messages[data.chat].push(message);
+        
+        // Ограничим историю 200 сообщениями на чат
+        if (messages[data.chat].length > 200) {
+            messages[data.chat].shift();
+        }
+        
+        io.to(data.chat).emit('new message', message);
+        console.log(`💬 Сообщение в ${data.chat} от ${data.from}`);
+    });
+    
+    socket.on('disconnect', () => {
+        console.log('🔌 Сокет отключён');
     });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+    console.log(`🚀 Сервер запущен на порту ${PORT}`);
+    console.log(`📱 Чат доступен по адресу: http://localhost:${PORT}`);
 });
