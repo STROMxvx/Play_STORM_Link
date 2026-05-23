@@ -12,6 +12,27 @@ let recordingTimerInterval = null;
 
 let userWarnings = {};
 
+// ===== ЦВЕТА И НАЗВАНИЯ РАНГОВ =====
+const rankColors = { 
+    1: '#ffffff', 
+    2: '#00ff88', 
+    3: '#00ccff', 
+    4: '#aa66ff', 
+    5: '#ffaa33', 
+    6: '#ff3366', 
+    7: '#111111' 
+};
+
+const rankNames = { 
+    1: 'Гость', 
+    2: 'Squad 545', 
+    3: 'Трудовой состав', 
+    4: 'Команда Ураган', 
+    5: 'Модератор', 
+    6: 'Администратор', 
+    7: 'Владелец' 
+};
+
 // ===== ФУНКЦИИ ДЛЯ ОПЫТА =====
 function getExperienceRank(joinDateStr) {
     const joinDate = new Date(joinDateStr);
@@ -56,7 +77,7 @@ const dutiesText = `<div style="padding:10px; color:#ffffff; text-shadow:0 0 2px
     </div>
 </div>`;
 
-// ===== ГЕНЕРАЦИЯ ЧАТА ОПЫТ (все ранги своими цветами) =====
+// ===== ГЕНЕРАЦИЯ ЧАТА ОПЫТ =====
 function generateExperienceText() {
     const now = new Date();
     const currentDate = now.toLocaleString('ru-RU');
@@ -255,7 +276,6 @@ const chatNames = {
     guest_call: '🎙️ Гостевой'
 };
 
-// Хранилище сообщений для редактирования/удаления/ответов
 let currentMessages = [];
 let editingMessageId = null;
 
@@ -286,6 +306,7 @@ async function loadUser() {
         setupMobile();
         setupVoiceRecording();
         setupFileUpload();
+        switchChat('info_chat');
     } catch (err) {
         console.error('Ошибка загрузки пользователя:', err);
         window.location.href = '/login.html';
@@ -356,7 +377,7 @@ function setupVoiceRecording() {
                 reader.readAsDataURL(audioBlob);
                 stream.getTracks().forEach(track => track.stop());
                 recordingIndicator.classList.remove('active');
-                messageInput.placeholder = "Введите сообщение...";
+                if (messageInput) messageInput.placeholder = "Введите сообщение...";
                 isRecording = false;
                 if (recordingTimerInterval) clearInterval(recordingTimerInterval);
             };
@@ -365,13 +386,14 @@ function setupVoiceRecording() {
             isRecording = true;
             recordingStartTime = Date.now();
             recordingIndicator.classList.add('active');
-            messageInput.placeholder = "🎙️ Запись... Отпустите для отправки";
+            if (messageInput) messageInput.placeholder = "🎙️ Запись... Отпустите для отправки";
             
             recordingTimerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
                 const minutes = Math.floor(elapsed / 60);
                 const seconds = elapsed % 60;
-                document.getElementById('recordingTimer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                const timerSpan = document.getElementById('recordingTimer');
+                if (timerSpan) timerSpan.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
             }, 1000);
         } catch (err) {
             alert("Нет доступа к микрофону");
@@ -407,7 +429,7 @@ function setupFileUpload() {
             const progressDiv = document.getElementById('uploadProgress');
             const progressBar = document.getElementById('uploadProgressBar');
             const percentSpan = document.getElementById('uploadPercent');
-            progressDiv.classList.add('active');
+            if (progressDiv) progressDiv.classList.add('active');
             
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -419,11 +441,11 @@ function setupFileUpload() {
                     data: fileData
                 };
                 sendMessage(JSON.stringify(fileInfo), 'file');
-                progressDiv.classList.remove('active');
+                if (progressDiv) progressDiv.classList.remove('active');
             };
             
             reader.onprogress = (e) => {
-                if (e.lengthComputable) {
+                if (e.lengthComputable && progressBar && percentSpan) {
                     const percent = Math.round((e.loaded / e.total) * 100);
                     percentSpan.textContent = percent;
                     progressBar.value = percent;
@@ -538,74 +560,88 @@ function switchChat(chatId) {
     currentReplyTo = null;
     editingMessageId = null;
     
-    document.getElementById('currentChatName').innerHTML = chatNames[chatId] || chatId;
+    const headerSpan = document.getElementById('currentChatName');
+    if (headerSpan) headerSpan.innerHTML = chatNames[chatId] || chatId;
     
     const inputArea = document.getElementById('chatInputArea');
     const isComplaintChat = chatId === 'complaints';
     const isReadOnlyChat = ['rules', 'duties', 'experience', 'warnings_list'].includes(chatId);
     
     if (isComplaintChat) {
-        // В чате жалоб - только кнопка жалобы, без поля ввода текста
-        inputArea.innerHTML = `
-            <div style="width:100%; display:flex; justify-content:center;">
-                <button id="complaintBtn" style="padding:12px 24px; background:#ff3366; border:none; border-radius:30px; color:white; font-weight:bold; width:100%;">📋 Подать жалобу</button>
-            </div>
-        `;
-        document.getElementById('complaintBtn')?.addEventListener('click', openComplaintModal);
+        if (inputArea) {
+            inputArea.innerHTML = `
+                <div style="width:100%; display:flex; justify-content:center;">
+                    <button id="complaintBtn" style="padding:12px 24px; background:#ff3366; border:none; border-radius:30px; color:white; font-weight:bold; width:100%;">📋 Подать жалобу</button>
+                </div>
+            `;
+            document.getElementById('complaintBtn')?.addEventListener('click', openComplaintModal);
+        }
     } 
     else if (isReadOnlyChat) {
         if (currentUser.lvl === 7 && chatId !== 'warnings_list') {
-            inputArea.innerHTML = `<div style="width:100%;display:flex;gap:10px;"><button id="editReadOnlyBtn" style="padding:12px 24px;background:#ffdd00;color:#000;border:none;border-radius:30px;font-weight:bold;">✏️ Редактировать</button><button id="saveReadOnlyBtn" style="display:none;padding:12px 24px;background:#00ff88;color:#000;border:none;border-radius:30px;font-weight:bold;">💾 Сохранить</button></div>`;
-            
+            if (inputArea) {
+                inputArea.innerHTML = `<div style="width:100%;display:flex;gap:10px;"><button id="editReadOnlyBtn" style="padding:12px 24px;background:#ffdd00;color:#000;border:none;border-radius:30px;font-weight:bold;">✏️ Редактировать</button><button id="saveReadOnlyBtn" style="display:none;padding:12px 24px;background:#00ff88;color:#000;border:none;border-radius:30px;font-weight:bold;">💾 Сохранить</button></div>`;
+            }
             document.getElementById('editReadOnlyBtn')?.addEventListener('click', () => {
                 const msgDiv = document.getElementById('chatMessages');
                 const currentText = msgDiv.innerText;
-                msgDiv.innerHTML = `<textarea id="readOnlyEditor" style="width:100%;height:400px;background:#0a1e3a;color:#ffdd00;border:1px solid #00bfff;padding:15px;border-radius:15px;font-size:14px;">${currentText}</textarea>`;
-                document.getElementById('editReadOnlyBtn').style.display = 'none';
-                document.getElementById('saveReadOnlyBtn').style.display = 'block';
+                if (msgDiv) {
+                    msgDiv.innerHTML = `<textarea id="readOnlyEditor" style="width:100%;height:400px;background:#0a1e3a;color:#ffdd00;border:1px solid #00bfff;padding:15px;border-radius:15px;font-size:14px;">${currentText}</textarea>`;
+                }
+                const editBtn = document.getElementById('editReadOnlyBtn');
+                const saveBtn = document.getElementById('saveReadOnlyBtn');
+                if (editBtn) editBtn.style.display = 'none';
+                if (saveBtn) saveBtn.style.display = 'block';
             });
             document.getElementById('saveReadOnlyBtn')?.addEventListener('click', () => {
-                const newText = document.getElementById('readOnlyEditor').value;
+                const editor = document.getElementById('readOnlyEditor');
+                const newText = editor ? editor.value : '';
                 socket.emit('send message', { chat: chatId, from: currentUser.nickname, text: newText, lvl: currentUser.lvl, color: rankColors[currentUser.lvl] });
-                document.getElementById('editReadOnlyBtn').style.display = 'block';
-                document.getElementById('saveReadOnlyBtn').style.display = 'none';
+                const editBtn = document.getElementById('editReadOnlyBtn');
+                const saveBtn = document.getElementById('saveReadOnlyBtn');
+                if (editBtn) editBtn.style.display = 'block';
+                if (saveBtn) saveBtn.style.display = 'none';
                 switchChat(chatId);
             });
         } else {
-            inputArea.innerHTML = `<div style="width:100%;text-align:center;color:#888;padding:10px">🔒 Чат только для чтения</div>`;
+            if (inputArea) {
+                inputArea.innerHTML = `<div style="width:100%;text-align:center;color:#888;padding:10px">🔒 Чат только для чтения</div>`;
+            }
         }
     } 
     else {
-        // Обычный чат с полной панелью ввода
-        inputArea.innerHTML = `
-            <div class="input-buttons">
-                <button id="attachBtn" class="input-btn" title="Прикрепить файл">📎</button>
-                <button id="voiceBtn" class="input-btn" title="Голосовое сообщение">🎤</button>
-            </div>
-            <div class="recording-indicator" id="recordingIndicator">
-                <span>🔴 Запись...</span>
-                <span class="recording-timer" id="recordingTimer">0:00</span>
-            </div>
-            <input type="text" id="messageInput" placeholder="Введите сообщение...">
-            <button id="sendBtn">📤</button>
-        `;
-        document.getElementById('sendBtn')?.addEventListener('click', () => sendMessage());
-        document.getElementById('messageInput')?.addEventListener('keypress', e => { if(e.key === 'Enter') sendMessage(); });
-        setupVoiceRecording();
-        setupFileUpload();
+        if (inputArea) {
+            inputArea.innerHTML = `
+                <div class="input-buttons">
+                    <button id="attachBtn" class="input-btn" title="Прикрепить файл">📎</button>
+                    <button id="voiceBtn" class="input-btn" title="Голосовое сообщение">🎤</button>
+                </div>
+                <div class="recording-indicator" id="recordingIndicator">
+                    <span>🔴 Запись...</span>
+                    <span class="recording-timer" id="recordingTimer">0:00</span>
+                </div>
+                <input type="text" id="messageInput" placeholder="Введите сообщение...">
+                <button id="sendBtn">📤</button>
+            `;
+            document.getElementById('sendBtn')?.addEventListener('click', () => sendMessage());
+            document.getElementById('messageInput')?.addEventListener('keypress', e => { if(e.key === 'Enter') sendMessage(); });
+            setupVoiceRecording();
+            setupFileUpload();
+        }
     }
     
-    document.getElementById('chatMessages').innerHTML = '<div class="welcome-message">Загрузка...</div>';
+    const messagesDiv = document.getElementById('chatMessages');
+    if (messagesDiv) messagesDiv.innerHTML = '<div class="welcome-message">Загрузка...</div>';
     
     if (chatId === 'rules') { 
-        document.getElementById('chatMessages').innerHTML = rulesText; 
+        if (messagesDiv) messagesDiv.innerHTML = rulesText; 
     } else if (chatId === 'duties') {
-        document.getElementById('chatMessages').innerHTML = dutiesText;
+        if (messagesDiv) messagesDiv.innerHTML = dutiesText;
     } else if (chatId === 'experience') {
-        document.getElementById('chatMessages').innerHTML = generateExperienceText();
+        if (messagesDiv) messagesDiv.innerHTML = generateExperienceText();
         setInterval(() => {
-            if (currentChat === 'experience') {
-                document.getElementById('chatMessages').innerHTML = generateExperienceText();
+            if (currentChat === 'experience' && messagesDiv) {
+                messagesDiv.innerHTML = generateExperienceText();
             }
         }, 60000);
     } else { 
@@ -613,7 +649,7 @@ function switchChat(chatId) {
     }
 }
 
-// ===== ОТПРАВКА СООБЩЕНИЯ (с поддержкой файлов, голоса, ответов) =====
+// ===== ОТПРАВКА СООБЩЕНИЯ =====
 function sendMessage(customContent, contentType = 'text') {
     const input = document.getElementById('messageInput');
     let text = customContent || (input ? input.value.trim() : '');
@@ -651,7 +687,7 @@ function sendMessage(customContent, contentType = 'text') {
     if (input) input.value = '';
 }
 
-// ===== РЕДАКТИРОВАНИЕ СООБЩЕНИЯ =====
+// ===== РЕДАКТИРОВАНИЕ =====
 function editMessage(messageId, currentText) {
     const newText = prompt("Редактировать сообщение:", currentText);
     if (newText && newText.trim()) {
@@ -659,21 +695,21 @@ function editMessage(messageId, currentText) {
     }
 }
 
-// ===== УДАЛЕНИЕ СООБЩЕНИЯ =====
+// ===== УДАЛЕНИЕ =====
 function deleteMessage(messageId) {
     if (confirm("Удалить сообщение?")) {
         socket.emit('delete message', { id: messageId, chat: currentChat, from: currentUser.nickname, isAdmin: currentUser.lvl === 7 });
     }
 }
 
-// ===== ОТВЕТ НА СООБЩЕНИЕ =====
+// ===== ОТВЕТ =====
 function replyToMessage(from, text) {
     currentReplyTo = { from, text };
     const input = document.getElementById('messageInput');
     if (input) {
         input.focus();
         input.placeholder = `📌 Ответ ${from}...`;
-        setTimeout(() => { input.placeholder = "Введите сообщение..."; }, 3000);
+        setTimeout(() => { if (input) input.placeholder = "Введите сообщение..."; }, 3000);
     }
 }
 
@@ -683,22 +719,24 @@ function openComplaintModal() {
     const modalBody = document.getElementById('modalBody');
     const usersList = allUsers.map(u => `<option value="${u.nickname}">${u.nickname} (${u.name}) - ${rankNames[u.lvl]}</option>`).join('');
     
-    modalBody.innerHTML = `
-        <h3>📋 ЖАЛОБА №${complaintsCounter}</h3>
-        <p style="color:#88aaff;font-size:12px;margin-bottom:15px;">Я подаю жалобу без корыстных целей</p>
-        <label>👤 Подающий жалобу:</label>
-        <select id="complainantNick">${usersList}</select>
-        <label>👤 На кого жалоба:</label>
-        <select id="targetNick">${usersList}</select>
-        <label>📝 Описание:</label>
-        <textarea id="complaintDesc" rows="2"></textarea>
-        <label>⚠️ Что нарушил:</label>
-        <input id="violation" placeholder="Укажите нарушение">
-        <label>⚡ Наказание:</label>
-        <input id="punishment" placeholder="Выговор / Бан / Мут">
-        <button onclick="submitComplaint()">📨 Отправить</button>
-    `;
-    modal.style.display = 'block';
+    if (modalBody) {
+        modalBody.innerHTML = `
+            <h3>📋 ЖАЛОБА №${complaintsCounter}</h3>
+            <p style="color:#88aaff;font-size:12px;margin-bottom:15px;">Я подаю жалобу без корыстных целей</p>
+            <label>👤 Подающий жалобу:</label>
+            <select id="complainantNick">${usersList}</select>
+            <label>👤 На кого жалоба:</label>
+            <select id="targetNick">${usersList}</select>
+            <label>📝 Описание:</label>
+            <textarea id="complaintDesc" rows="2"></textarea>
+            <label>⚠️ Что нарушил:</label>
+            <input id="violation" placeholder="Укажите нарушение">
+            <label>⚡ Наказание:</label>
+            <input id="punishment" placeholder="Выговор / Бан / Мут">
+            <button onclick="submitComplaint()">📨 Отправить</button>
+        `;
+    }
+    if (modal) modal.style.display = 'block';
 }
 
 function submitComplaint() {
@@ -721,6 +759,7 @@ function submitComplaint() {
 socket.on('chat history', (msgs) => { 
     currentMessages = msgs || [];
     const c = document.getElementById('chatMessages'); 
+    if (!c) return;
     c.innerHTML = ''; 
     if (!msgs || msgs.length === 0) { 
         c.innerHTML = '<div class="welcome-message">✨ Сообщений нет.</div>'; 
@@ -746,20 +785,20 @@ socket.on('message deleted', (data) => {
 
 function addMessageToChat(m) {
     const c = document.getElementById('chatMessages');
+    if (!c) return;
     const isOwn = m.from === currentUser.nickname;
     const messageId = m.timestamp || Date.now() + Math.random();
     
-    // Обработка файлов и голосовых
     let displayText = m.text;
     let filePreview = '';
     
-    if (m.text.startsWith('[🎤 Голосовое сообщение]')) {
+    if (m.text && m.text.startsWith('[🎤 Голосовое сообщение]')) {
         const audioUrl = m.text.match(/\(([^)]+)\)/)?.[1];
         if (audioUrl) {
             displayText = '';
             filePreview = `<audio controls src="${audioUrl}" style="max-width:100%; border-radius:20px;"></audio>`;
         }
-    } else if (m.text.startsWith('[📎 Файл]')) {
+    } else if (m.text && m.text.startsWith('[📎 Файл]')) {
         const fileData = m.text.match(/\(([^)]+)\)/)?.[1];
         if (fileData) {
             try {
@@ -811,30 +850,34 @@ function openPunishModal(nickname) {
     const modal = document.getElementById('modal'); 
     const body = document.getElementById('modalBody');
     
-    body.innerHTML = `
-        <h3>⚖️ Наказание для ${nickname}</h3>
-        <div style="text-align:center;margin:15px 0;">
-            <span style="background:${rankColors[user.lvl]};padding:6px 20px;border-radius:30px;color:white;">${user.lvl} LVL · ${rankNames[user.lvl]}</span>
-            <div style="margin-top:5px;">⚠️ Выговоры: ${getWarningCount(nickname)}/3</div>
-        </div>
-        <label>Тип наказания:</label>
-        <select id="pt" style="width:100%;padding:12px;background:#0a1e3a;color:#ffdd00;border:1px solid #00bfff;border-radius:14px;">
-            <option value="warning">📝 Устное предупреждение</option>
-            <option value="strike">🔴 Выговор</option>
-            <option value="ban">🚫 Бан</option>
-            <option value="mute">🔇 Мут</option>
-        </select>
-        <div id="pf" style="margin-top:15px;"></div>
-        <button onclick="submitPunish('${nickname}')" style="width:100%;margin-top:20px;">✅ Отправить</button>
-    `;
-    modal.style.display = 'block';
-    document.getElementById('pt').onchange = () => updatePunishForm();
+    if (body) {
+        body.innerHTML = `
+            <h3>⚖️ Наказание для ${nickname}</h3>
+            <div style="text-align:center;margin:15px 0;">
+                <span style="background:${rankColors[user.lvl]};padding:6px 20px;border-radius:30px;color:white;">${user.lvl} LVL · ${rankNames[user.lvl]}</span>
+                <div style="margin-top:5px;">⚠️ Выговоры: ${getWarningCount(nickname)}/3</div>
+            </div>
+            <label>Тип наказания:</label>
+            <select id="pt" style="width:100%;padding:12px;background:#0a1e3a;color:#ffdd00;border:1px solid #00bfff;border-radius:14px;">
+                <option value="warning">📝 Устное предупреждение</option>
+                <option value="strike">🔴 Выговор</option>
+                <option value="ban">🚫 Бан</option>
+                <option value="mute">🔇 Мут</option>
+            </select>
+            <div id="pf" style="margin-top:15px;"></div>
+            <button onclick="submitPunish('${nickname}')" style="width:100%;margin-top:20px;">✅ Отправить</button>
+        `;
+    }
+    if (modal) modal.style.display = 'block';
+    const ptSelect = document.getElementById('pt');
+    if (ptSelect) ptSelect.onchange = () => updatePunishForm();
     updatePunishForm();
 }
 
 function updatePunishForm() {
-    const t = document.getElementById('pt').value;
+    const t = document.getElementById('pt')?.value;
     const f = document.getElementById('pf');
+    if (!f) return;
     if (t === 'warning') {
         f.innerHTML = `<label>Причина:</label><textarea id="pr" rows="2" style="width:100%;background:#0a1e3a;color:#ffdd00;border:1px solid #00bfff;border-radius:10px;padding:10px;"></textarea>`;
     } else if (t === 'strike') {
@@ -847,7 +890,7 @@ function updatePunishForm() {
 }
 
 async function submitPunish(nickname) {
-    const type = document.getElementById('pt').value;
+    const type = document.getElementById('pt')?.value;
     let reason = document.getElementById('pr')?.value || '';
     let duration = document.getElementById('dur')?.value || '';
     let typeName = type === 'warning' ? '📝 УСТНОЕ ПРЕДУПРЕЖДЕНИЕ' : type === 'strike' ? '🔴 ВЫГОВОР' : type === 'ban' ? '🚫 БАН' : '🔇 МУТ';
@@ -870,8 +913,10 @@ function showMembersPanel() {
     const modal = document.getElementById('modal'); 
     const body = document.getElementById('modalBody');
     const sorted = [...allUsers].sort((a,b) => b.lvl - a.lvl);
-    body.innerHTML = `<h3>👥 Участники</h3><div>${sorted.map(u => `<div style="padding:10px;cursor:pointer;border-bottom:1px solid #00bfff33;" onclick="openUserModal('${u.nickname}')"><div style="color:#ffdd00;">${u.nickname}</div><div>${rankNames[u.lvl]} ${u.subRole||''}</div><div style="color:#ffaa33;">⚠️ ${getWarningCount(u.nickname)}/3</div></div>`).join('')}</div>`;
-    modal.style.display = 'block';
+    if (body) {
+        body.innerHTML = `<h3>👥 Участники</h3><div>${sorted.map(u => `<div style="padding:10px;cursor:pointer;border-bottom:1px solid #00bfff33;" onclick="openUserModal('${u.nickname}')"><div style="color:#ffdd00;">${u.nickname}</div><div>${rankNames[u.lvl]} ${u.subRole||''}</div><div style="color:#ffaa33;">⚠️ ${getWarningCount(u.nickname)}/3</div></div>`).join('')}</div>`;
+    }
+    if (modal) modal.style.display = 'block';
 }
 
 function openUserModal(nickname) {
@@ -889,14 +934,16 @@ function openUserModal(nickname) {
     
     const modal = document.getElementById('modal'); 
     const body = document.getElementById('modalBody');
-    body.innerHTML = `
-        <h3>${u.nickname}</h3>
-        <div style="text-align:center;"><span style="background:${rankColors[u.lvl]};padding:6px 20px;border-radius:30px;color:white;">${u.lvl} LVL · ${rankNames[u.lvl]}</span>${u.subRole ? `<div>📌 ${u.subRole}</div>` : ''}<div>⚠️ ${warns.length}/3</div><div style="color:${expColor};">${expRank}</div></div>
-        <p>👤 Имя: <span style="color:#ffdd00;">${u.name}</span></p><p>🎂 ДР: ${u.birthDate||'—'}</p><p>📅 Вступление: ${u.joinDate} → ${exp}</p><p>📝 ${u.comment||'—'}</p>
-        ${warns.length ? `<div style="background:#0003;border-radius:10px;padding:10px;"><strong>⚠️ Выговоры:</strong>${warns.map(w => `<div>📅 ${w.date}<br>📝 ${w.reason}<br>👮 ${w.giver}</div>`).join('')}</div>` : ''}
-        <div class="user-actions-modal">${currentUser.lvl === 7 ? `<button class="user-action-btn edit" onclick="editUser('${u.nickname}')">✏️</button><button class="user-action-btn warn" onclick="openPunishModal('${u.nickname}')">⚖️</button><button class="user-action-btn freeze" onclick="toggleFreeze('${u.nickname}')">${u.frozen ? '❄️' : '🔥'}</button>${u.nickname !== 'STORM_X' ? `<button class="user-action-btn delete" onclick="deleteUser('${u.nickname}')">❌</button>` : ''}` : '<p>👁️ Просмотр</p>'}</div>
-    `;
-    modal.style.display = 'block';
+    if (body) {
+        body.innerHTML = `
+            <h3>${u.nickname}</h3>
+            <div style="text-align:center;"><span style="background:${rankColors[u.lvl]};padding:6px 20px;border-radius:30px;color:white;">${u.lvl} LVL · ${rankNames[u.lvl]}</span>${u.subRole ? `<div>📌 ${u.subRole}</div>` : ''}<div>⚠️ ${warns.length}/3</div><div style="color:${expColor};">${expRank}</div></div>
+            <p>👤 Имя: <span style="color:#ffdd00;">${u.name}</span></p><p>🎂 ДР: ${u.birthDate||'—'}</p><p>📅 Вступление: ${u.joinDate} → ${exp}</p><p>📝 ${u.comment||'—'}</p>
+            ${warns.length ? `<div style="background:#0003;border-radius:10px;padding:10px;"><strong>⚠️ Выговоры:</strong>${warns.map(w => `<div>📅 ${w.date}<br>📝 ${w.reason}<br>👮 ${w.giver}</div>`).join('')}</div>` : ''}
+            <div class="user-actions-modal">${currentUser.lvl === 7 ? `<button class="user-action-btn edit" onclick="editUser('${u.nickname}')">✏️</button><button class="user-action-btn warn" onclick="openPunishModal('${u.nickname}')">⚖️</button><button class="user-action-btn freeze" onclick="toggleFreeze('${u.nickname}')">${u.frozen ? '❄️' : '🔥'}</button>${u.nickname !== 'STORM_X' ? `<button class="user-action-btn delete" onclick="deleteUser('${u.nickname}')">❌</button>` : ''}` : '<p>👁️ Просмотр</p>'}</div>
+        `;
+    }
+    if (modal) modal.style.display = 'block';
 }
 
 // ===== АДМИН ФУНКЦИИ =====
@@ -922,22 +969,25 @@ function renderMembersList() {
 function openAddUserModal() { 
     if (currentUser.lvl !== 7) return; 
     const modal = document.getElementById('modal'); 
-    modal.innerHTML = `<div class="modal-content"><span class="modal-close">&times;</span><div id="modalBody"><h3>➕ Добавить</h3><label>Ник:</label><input id="addNickname"><label>Имя:</label><input id="addName"><label>Пароль:</label><input id="addPassword"><label>Ранг:</label><select id="addLvl"><option value="1">Гость</option><option value="2">Squad 545</option><option value="3">Трудовой состав</option><option value="4">Ураган</option><option value="5">Модератор</option><option value="6">Админ</option></select><label>Подроль:</label><input id="addSubRole"><label>ДР:</label><input id="addBirthDate"><label>Коммент:</label><textarea id="addComment"></textarea><label>Дата вступления:</label><input id="addJoinDate" placeholder="ДД.ММ.ГГГГ"><button onclick="submitAddUser()">✅ Добавить</button></div></div>`; 
-    modal.style.display = 'block'; 
-    document.querySelector('.modal-close').onclick = closeModal; 
+    if (modal) {
+        modal.innerHTML = `<div class="modal-content"><span class="modal-close">&times;</span><div id="modalBody"><h3>➕ Добавить</h3><label>Ник:</label><input id="addNickname"><label>Имя:</label><input id="addName"><label>Пароль:</label><input id="addPassword"><label>Ранг:</label><select id="addLvl"><option value="1">Гость</option><option value="2">Squad 545</option><option value="3">Трудовой состав</option><option value="4">Ураган</option><option value="5">Модератор</option><option value="6">Админ</option></select><label>Подроль:</label><input id="addSubRole"><label>ДР:</label><input id="addBirthDate"><label>Коммент:</label><textarea id="addComment"></textarea><label>Дата вступления:</label><input id="addJoinDate" placeholder="ДД.ММ.ГГГГ"><button onclick="submitAddUser()">✅ Добавить</button></div></div>`; 
+        modal.style.display = 'block'; 
+        const closeSpan = document.querySelector('.modal-close');
+        if (closeSpan) closeSpan.onclick = closeModal;
+    }
 }
 
 async function submitAddUser() { 
-    let jd = document.getElementById('addJoinDate').value; 
+    let jd = document.getElementById('addJoinDate')?.value; 
     if (!jd) jd = new Date().toLocaleDateString(); 
     const data = { 
-        nickname: document.getElementById('addNickname').value, 
-        name: document.getElementById('addName').value, 
-        password: document.getElementById('addPassword').value, 
-        lvl: document.getElementById('addLvl').value, 
-        subRole: document.getElementById('addSubRole').value, 
-        birthDate: document.getElementById('addBirthDate').value, 
-        comment: document.getElementById('addComment').value, 
+        nickname: document.getElementById('addNickname')?.value, 
+        name: document.getElementById('addName')?.value, 
+        password: document.getElementById('addPassword')?.value, 
+        lvl: document.getElementById('addLvl')?.value, 
+        subRole: document.getElementById('addSubRole')?.value, 
+        birthDate: document.getElementById('addBirthDate')?.value, 
+        comment: document.getElementById('addComment')?.value, 
         joinDate: jd 
     }; 
     const res = await fetch('/api/addUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); 
@@ -949,11 +999,13 @@ async function submitAddUser() {
 function editUser(nickname) { 
     const u = allUsers.find(u => u.nickname === nickname); 
     const b = document.getElementById('modalBody'); 
-    b.innerHTML = `<h3>✏️ Редакт ${nickname}</h3><label>Имя:</label><input id="editName" value="${u.name}"><label>Ранг:</label><select id="editLvl">${[1,2,3,4,5,6,7].map(l => `<option value="${l}" ${u.lvl === l ? 'selected' : ''}>${rankNames[l]}</option>`).join('')}</select><label>Подроль:</label><input id="editSubRole" value="${u.subRole||''}"><label>ДР:</label><input id="editBirthDate" value="${u.birthDate||''}"><label>Коммент:</label><textarea id="editComment">${u.comment||''}</textarea><label>Дата вступления:</label><input id="editJoinDate" value="${u.joinDate}"><button onclick="submitEditUser('${nickname}')">💾 Сохранить</button>`; 
+    if (b) {
+        b.innerHTML = `<h3>✏️ Редакт ${nickname}</h3><label>Имя:</label><input id="editName" value="${u.name}"><label>Ранг:</label><select id="editLvl">${[1,2,3,4,5,6,7].map(l => `<option value="${l}" ${u.lvl === l ? 'selected' : ''}>${rankNames[l]}</option>`).join('')}</select><label>Подроль:</label><input id="editSubRole" value="${u.subRole||''}"><label>ДР:</label><input id="editBirthDate" value="${u.birthDate||''}"><label>Коммент:</label><textarea id="editComment">${u.comment||''}</textarea><label>Дата вступления:</label><input id="editJoinDate" value="${u.joinDate}"><button onclick="submitEditUser('${nickname}')">💾 Сохранить</button>`; 
+    }
 }
 
 async function submitEditUser(nickname) { 
-    const data = { nickname, name: document.getElementById('editName').value, lvl: document.getElementById('editLvl').value, subRole: document.getElementById('editSubRole').value, birthDate: document.getElementById('editBirthDate').value, comment: document.getElementById('editComment').value, joinDate: document.getElementById('editJoinDate').value }; 
+    const data = { nickname, name: document.getElementById('editName')?.value, lvl: document.getElementById('editLvl')?.value, subRole: document.getElementById('editSubRole')?.value, birthDate: document.getElementById('editBirthDate')?.value, comment: document.getElementById('editComment')?.value, joinDate: document.getElementById('editJoinDate')?.value }; 
     const res = await fetch('/api/editUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); 
     const result = await res.json(); 
     if (result.success) { closeModal(); loadMembers(); buildMenu(); alert("Сохранено!"); } 
@@ -976,16 +1028,21 @@ function deleteUser(nickname) {
     } 
 }
 
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
+function closeModal() { 
+    const modal = document.getElementById('modal');
+    if (modal) modal.style.display = 'none'; 
+}
 
 // ===== ЗАПУСК =====
-document.getElementById('logoutBtn')?.addEventListener('click', () => window.location.href = '/logout');
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) logoutBtn.addEventListener('click', () => window.location.href = '/logout');
 window.addEventListener('resize', () => setupMobile());
 
 document.addEventListener('DOMContentLoaded', async () => { 
     await loadUser(); 
-    document.getElementById('addMemberBtn')?.addEventListener('click', openAddUserModal); 
-    document.querySelector('.modal-close')?.addEventListener('click', closeModal); 
+    const addMemberBtn = document.getElementById('addMemberBtn');
+    if (addMemberBtn) addMemberBtn.addEventListener('click', openAddUserModal); 
+    const modalClose = document.querySelector('.modal-close');
+    if (modalClose) modalClose.addEventListener('click', closeModal); 
     window.onclick = e => { if (e.target === document.getElementById('modal')) closeModal(); }; 
-    switchChat('info_chat'); 
 });
