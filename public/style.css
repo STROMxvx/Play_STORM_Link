@@ -15,7 +15,7 @@ body {
     display: flex;
     height: 100vh;
     width: 100%;
-    background: radial-gradient(ellipse at 30% 40%, #0a1525, #050a12);
+    background: linear-gradient(135deg, #0a2a5a 0%, #0a1a3a 50%, #061a3a 100%);
     position: relative;
 }
 
@@ -26,15 +26,15 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(255, 221, 0, 0.03) 20px, rgba(255, 221, 0, 0.03) 40px);
+    background: radial-gradient(circle at 20% 40%, rgba(0, 150, 255, 0.08), transparent 70%);
     pointer-events: none;
 }
 
 .sidebar-left {
     width: 280px;
-    background: rgba(8, 12, 25, 0.85);
+    background: rgba(10, 30, 70, 0.85);
     backdrop-filter: blur(12px);
-    border-right: 1px solid rgba(0, 191, 255, 0.3);
+    border-right: 1px solid rgba(0, 150, 255, 0.4);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -43,8 +43,8 @@ body {
 
 .user-profile {
     padding: 20px 16px;
-    background: linear-gradient(135deg, rgba(0, 191, 255, 0.08), rgba(255, 221, 0, 0.04));
-    border-bottom: 1px solid rgba(0, 191, 255, 0.2);
+    background: linear-gradient(135deg, rgba(0, 150, 255, 0.15), rgba(0, 100, 200, 0.05));
+    border-bottom: 1px solid rgba(0, 150, 255, 0.3);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -61,8 +61,9 @@ body {
     font-size: 13px;
     color: white;
     background: #222;
-    box-shadow: 0 0 12px rgba(0, 191, 255, 0.3);
+    box-shadow: 0 0 12px rgba(0, 150, 255, 0.4);
     flex-shrink: 0;
+    text-shadow: 0 0 2px rgba(0,0,0,0.5);
 }
 
 .user-info {
@@ -78,25 +79,25 @@ body {
 }
 
 .user-name {
-    color: #00bfff;
+    color: #88ccff;
     font-size: 11px;
-    opacity: 0.8;
+    opacity: 0.9;
     margin-top: 2px;
 }
 
 .logout-btn {
-    background: rgba(255, 68, 68, 0.15);
-    border: 1px solid rgba(255, 68, 68, 0.3);
+    background: rgba(255, 68, 68, 0.2);
+    border: 1px solid rgba(255, 68, 68, 0.4);
     font-size: 18px;
     cursor: pointer;
     padding: 8px;
     border-radius: 50%;
     transition: all 0.2s;
-    color: #ff6666;
+    color: #ff8888;
 }
 
 .logout-btn:hover {
-    background: rgba(255, 68, 68, 0.4);
+    background: rgba(255, 68, 68, 0.5);
     transform: scale(1.05);
 }
 
@@ -108,12 +109,12 @@ body {
 
 .chat-category {
     padding: 16px 16px 6px 16px;
-    color: #00bfff;
+    color: #88ccff;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 2px;
     font-weight: bold;
-    opacity: 0.7;
+    opacity: 0.8;
 }
 
 .chat-item {
@@ -124,16 +125,16 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     border-left: 3px solid transparent;
-    color: #e0e0e0;
+    color: #e0e0f0;
 }
 
 .chat-item:hover {
-    background: rgba(0, 191, 255, 0.12);
+    background: rgba(0, 150, 255, 0.15);
     color: #ffdd00;
 }
 
 .chat-item.active {
-    background: linear-gradient(90deg, rgba(0, 191, 255, 0.15), transparent);
+    background: linear-gradient(90deg, rgba(0, 150, 255, 0.2), transparent);
     border-left-color: #ffdd00;
     color: #ffdd00;
 }
@@ -156,17 +157,17 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     font-size: 12px;
-    color: #bbbbbb;
+    color: #ccccdd;
     border-left: 2px solid transparent;
 }
 
 .subchat-item:hover {
-    background: rgba(0, 191, 255, 0.1);
+    background: rgba(0, 150, 255, 0.12);
     color: #ffdd00;
 }
 
 .subchat-item.active {
-    background: rgba(0, 191, 255, 0.1);
+    background: rgba(0, 150, 255, 0.12);
     border-left-color: #ffdd00;
     color: #ffdd00;
 }
@@ -175,14 +176,14 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: rgba(5, 10, 20, 0.5);
+    background: rgba(10, 30, 70, 0.4);
     backdrop-filter: blur(4px);
 }
 
 .chat-header {
     padding: 18px 24px;
-    background: rgba(8, 12, 25, 0.8);
-    border-bottom: 1px solid rgba(0, 191, 255, 0.25);
+    background: rgba(10, 30, 70, 0.85);
+    border-bottom: 1px solid rgba(0, 150, 255, 0.35);
     color: #ffdd00;
     font-size: 18px;
     font-weight: bold;
@@ -201,8 +202,9 @@ body {
 
 .welcome-message {
     text-align: center;
-    color: rgba(0, 191, 255, 0.5);
+    color: rgba(100, 180, 255, 0.7);
     padding: 40px;
+    text-shadow: 0 0 2px rgba(0,0,0,0.3);
 }
 
 .message {
@@ -230,12 +232,14 @@ body {
     font-size: 9px;
     font-weight: bold;
     color: white;
+    text-shadow: 0 0 1px black;
 }
 
 .message-from {
     font-weight: bold;
     font-size: 13px;
     color: #ffdd00;
+    text-shadow: 0 0 2px rgba(0,0,0,0.5);
 }
 
 .message-time {
@@ -244,18 +248,19 @@ body {
 }
 
 .message-text {
-    background: rgba(0, 30, 60, 0.7);
+    background: rgba(0, 50, 100, 0.7);
     padding: 10px 16px;
     border-radius: 18px;
-    color: #f0f0f0;
+    color: #ffffff;
     font-size: 14px;
     word-wrap: break-word;
-    border: 1px solid rgba(0, 191, 255, 0.2);
+    border: 1px solid rgba(0, 150, 255, 0.3);
     white-space: pre-wrap;
+    text-shadow: 0 0 1px rgba(0,0,0,0.3);
 }
 
 .message.own .message-text {
-    background: rgba(0, 100, 150, 0.6);
+    background: rgba(0, 100, 180, 0.7);
     border-color: rgba(255, 221, 0, 0.4);
 }
 
@@ -266,8 +271,8 @@ body {
 
 .chat-input-area {
     padding: 16px 20px;
-    background: rgba(8, 12, 25, 0.85);
-    border-top: 1px solid rgba(0, 191, 255, 0.25);
+    background: rgba(10, 30, 70, 0.85);
+    border-top: 1px solid rgba(0, 150, 255, 0.35);
     display: flex;
     gap: 12px;
 }
@@ -275,8 +280,8 @@ body {
 #messageInput {
     flex: 1;
     padding: 12px 20px;
-    background: rgba(0, 20, 40, 0.8);
-    border: 1px solid rgba(0, 191, 255, 0.4);
+    background: rgba(0, 30, 60, 0.9);
+    border: 1px solid rgba(0, 150, 255, 0.5);
     border-radius: 30px;
     color: #ffdd00;
     font-size: 14px;
@@ -290,12 +295,12 @@ body {
 }
 
 #messageInput::placeholder {
-    color: rgba(0, 191, 255, 0.5);
+    color: rgba(100, 180, 255, 0.6);
 }
 
 #sendBtn {
     padding: 12px 24px;
-    background: linear-gradient(135deg, #00bfff, #0077aa);
+    background: linear-gradient(135deg, #0088ff, #0066cc);
     border: none;
     border-radius: 30px;
     color: white;
@@ -303,19 +308,20 @@ body {
     font-size: 16px;
     font-weight: bold;
     transition: all 0.2s;
+    text-shadow: 0 0 1px black;
 }
 
 #sendBtn:hover {
     transform: scale(1.02);
-    box-shadow: 0 0 16px rgba(0, 191, 255, 0.5);
-    background: linear-gradient(135deg, #33ccff, #0099cc);
+    box-shadow: 0 0 16px rgba(0, 150, 255, 0.5);
+    background: linear-gradient(135deg, #33aaff, #0088dd);
 }
 
 .sidebar-right {
     width: 300px;
-    background: rgba(8, 12, 25, 0.85);
+    background: rgba(10, 30, 70, 0.85);
     backdrop-filter: blur(12px);
-    border-left: 1px solid rgba(0, 191, 255, 0.3);
+    border-left: 1px solid rgba(0, 150, 255, 0.4);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -327,13 +333,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(0, 191, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 150, 255, 0.3);
     color: #ffdd00;
     font-weight: bold;
 }
 
 .add-member-btn {
-    background: rgba(0, 191, 255, 0.2);
+    background: rgba(0, 150, 255, 0.25);
     border: none;
     font-size: 18px;
     cursor: pointer;
@@ -344,7 +350,7 @@ body {
 }
 
 .add-member-btn:hover {
-    background: rgba(0, 191, 255, 0.5);
+    background: rgba(0, 150, 255, 0.55);
 }
 
 .members-list {
@@ -356,7 +362,7 @@ body {
 .member-item {
     padding: 12px;
     margin-bottom: 8px;
-    background: rgba(0, 191, 255, 0.06);
+    background: rgba(0, 100, 180, 0.1);
     border-radius: 14px;
     cursor: pointer;
     transition: all 0.2s;
@@ -367,8 +373,8 @@ body {
 }
 
 .member-item:hover {
-    background: rgba(0, 191, 255, 0.15);
-    border-color: rgba(255, 221, 0, 0.3);
+    background: rgba(0, 150, 255, 0.2);
+    border-color: rgba(255, 221, 0, 0.4);
 }
 
 .member-rank-badge {
@@ -381,6 +387,7 @@ body {
     font-size: 11px;
     font-weight: bold;
     color: white;
+    text-shadow: 0 0 2px black;
     flex-shrink: 0;
 }
 
@@ -392,18 +399,19 @@ body {
     color: #ffdd00;
     font-weight: bold;
     font-size: 13px;
+    text-shadow: 0 0 1px black;
 }
 
 .member-name {
-    color: #00bfff;
+    color: #88ccff;
     font-size: 10px;
-    opacity: 0.8;
+    opacity: 0.9;
 }
 
 .member-role {
     font-size: 9px;
-    color: #cccccc;
-    opacity: 0.6;
+    color: #ccccff;
+    opacity: 0.7;
 }
 
 .frozen-badge {
@@ -419,20 +427,20 @@ body {
     top: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(8px);
 }
 
 .modal-content {
     position: relative;
-    background: linear-gradient(145deg, #0e1a2a, #0a1020);
+    background: linear-gradient(145deg, #0e2a4a, #0a1a3a);
     margin: 4% auto;
     padding: 0;
     width: 550px;
     max-width: 90%;
     border-radius: 24px;
-    border: 1px solid rgba(0, 191, 255, 0.5);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 191, 255, 0.2);
+    border: 1px solid rgba(0, 150, 255, 0.6);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 150, 255, 0.3);
     animation: modalSlideIn 0.25s ease;
 }
 
@@ -482,8 +490,8 @@ body {
     width: 100%;
     padding: 12px;
     margin-bottom: 16px;
-    background: rgba(0, 30, 60, 0.7);
-    border: 1px solid rgba(0, 191, 255, 0.4);
+    background: rgba(0, 40, 70, 0.9);
+    border: 1px solid rgba(0, 150, 255, 0.5);
     border-radius: 14px;
     color: #ffdd00;
     font-size: 14px;
@@ -497,7 +505,7 @@ body {
 }
 
 #modalBody label {
-    color: #00bfff;
+    color: #88ccff;
     font-size: 12px;
     display: block;
     margin-bottom: 6px;
@@ -506,7 +514,7 @@ body {
 
 #modalBody button {
     padding: 12px 24px;
-    background: linear-gradient(135deg, #00bfff, #0088bb);
+    background: linear-gradient(135deg, #0088ff, #0066cc);
     border: none;
     border-radius: 30px;
     color: white;
@@ -515,11 +523,12 @@ body {
     font-weight: bold;
     margin-top: 8px;
     transition: all 0.2s;
+    text-shadow: 0 0 1px black;
 }
 
 #modalBody button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 191, 255, 0.3);
+    box-shadow: 0 6px 16px rgba(0, 150, 255, 0.4);
 }
 
 .user-actions-modal {
@@ -538,9 +547,11 @@ body {
     font-size: 13px;
     font-weight: bold;
     transition: 0.2s;
+    color: white;
+    text-shadow: 0 0 1px black;
 }
 
-.user-action-btn.edit { background: #ffdd00; color: #000; }
+.user-action-btn.edit { background: #ffdd00; color: #000; text-shadow: none; }
 .user-action-btn.warn { background: #ff8844; color: #fff; }
 .user-action-btn.freeze { background: #00bfff; color: #fff; }
 .user-action-btn.delete { background: #ff4444; color: #fff; }
@@ -551,6 +562,6 @@ body {
 }
 
 ::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: rgba(0, 191, 255, 0.1); border-radius: 4px; }
+::-webkit-scrollbar-track { background: rgba(0, 150, 255, 0.15); border-radius: 4px; }
 ::-webkit-scrollbar-thumb { background: #ffdd00; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #ffaa00; }
