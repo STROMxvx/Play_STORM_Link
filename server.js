@@ -19,7 +19,6 @@ app.use(session({
     cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-// ===== БАЗА ДАННЫХ =====
 const users = {
     'STORM_X': {
         password: bcrypt.hashSync('xVgoogYu545@stojj0', 10),
@@ -39,7 +38,6 @@ const users = {
 const rankColors = { 1: '#ffffff', 2: '#00ff88', 3: '#00ccff', 4: '#aa66ff', 5: '#ffaa33', 6: '#ff3366', 7: '#111111' };
 const rankNames = { 1: 'Гость', 2: 'Squad 545', 3: 'Трудовой состав', 4: 'Команда Ураган', 5: 'Модератор', 6: 'Администратор', 7: 'Владелец' };
 
-// ВСЕ ЧАТЫ
 const messages = {
     info_chat: [], announcements: [], complaints: [], ideas: [], tasks: [], warnings_list: [], rules: [],
     guest_call: [], squad545: [], labor_general: [], editor: [], artist: [], animator: [],
@@ -69,7 +67,6 @@ app.get('/api/users', (req, res) => {
     if (!req.session.user) return res.json({ error: 'access denied' });
     const currentUser = users[req.session.user.nickname];
     if (!currentUser || currentUser.lvl !== 7) return res.json({ error: 'access denied' });
-    
     const allUsers = Object.values(users).map(u => ({
         nickname: u.nickname, name: u.name, lvl: u.lvl, role: rankNames[u.lvl],
         subRole: u.subRole, color: rankColors[u.lvl], frozen: u.frozen,
@@ -79,44 +76,27 @@ app.get('/api/users', (req, res) => {
 });
 
 app.post('/api/addUser', (req, res) => {
-    // Проверка авторизации
     if (!req.session.user) return res.json({ error: 'not authorized' });
-    
     const currentUser = users[req.session.user.nickname];
-    if (!currentUser || currentUser.lvl !== 7) {
-        return res.json({ error: 'access denied. Только LVL 7 может добавлять пользователей' });
-    }
+    if (!currentUser || currentUser.lvl !== 7) return res.json({ error: 'access denied' });
     
     const { nickname, name, lvl, subRole, birthDate, comment, password, joinDate } = req.body;
-    
-    if (!nickname || !name || !password) {
-        return res.json({ error: 'Заполните ник, имя и пароль' });
-    }
-    
-    if (users[nickname]) {
-        return res.json({ error: 'Пользователь с таким ником уже существует' });
-    }
+    if (!nickname || !name || !password) return res.json({ error: 'Заполните ник, имя и пароль' });
+    if (users[nickname]) return res.json({ error: 'Пользователь с таким ником уже существует' });
     
     const finalJoinDate = joinDate && joinDate.trim() !== '' ? joinDate : new Date().toLocaleDateString();
-    
     users[nickname] = {
-        nickname, name, password: bcrypt.hashSync(password, 10),
-        lvl: parseInt(lvl), role: rankNames[lvl], subRole: subRole || null,
-        birthDate: birthDate || '', comment: comment || '', joinDate: finalJoinDate,
-        frozen: false, frozenReason: null
+        nickname, name, password: bcrypt.hashSync(password, 10), lvl: parseInt(lvl), role: rankNames[lvl],
+        subRole: subRole || null, birthDate: birthDate || '', comment: comment || '',
+        joinDate: finalJoinDate, frozen: false, frozenReason: null
     };
-    
-    console.log(`✅ Добавлен пользователь: ${nickname} (LVL ${lvl})`);
-    res.json({ success: true, message: 'Пользователь добавлен' });
+    res.json({ success: true });
 });
 
 app.post('/api/editUser', (req, res) => {
-    if (!req.session.user || users[req.session.user.nickname]?.lvl !== 7) {
-        return res.json({ error: 'access denied' });
-    }
+    if (!req.session.user || users[req.session.user.nickname]?.lvl !== 7) return res.json({ error: 'access denied' });
     const { nickname, name, lvl, subRole, birthDate, comment, joinDate } = req.body;
     if (!users[nickname]) return res.json({ error: 'Пользователь не найден' });
-    
     users[nickname].name = name;
     users[nickname].lvl = parseInt(lvl);
     users[nickname].role = rankNames[lvl];
@@ -124,17 +104,13 @@ app.post('/api/editUser', (req, res) => {
     users[nickname].birthDate = birthDate || '';
     users[nickname].comment = comment || '';
     if (joinDate && joinDate.trim() !== '') users[nickname].joinDate = joinDate;
-    
     res.json({ success: true });
 });
 
 app.post('/api/toggleFreeze', (req, res) => {
-    if (!req.session.user || users[req.session.user.nickname]?.lvl !== 7) {
-        return res.json({ error: 'access denied' });
-    }
+    if (!req.session.user || users[req.session.user.nickname]?.lvl !== 7) return res.json({ error: 'access denied' });
     const { nickname, reason } = req.body;
     if (!users[nickname]) return res.json({ error: 'Пользователь не найден' });
-    
     if (users[nickname].frozen) {
         users[nickname].frozen = false;
         users[nickname].frozenReason = null;
@@ -147,13 +123,10 @@ app.post('/api/toggleFreeze', (req, res) => {
 });
 
 app.post('/api/deleteUser', (req, res) => {
-    if (!req.session.user || users[req.session.user.nickname]?.lvl !== 7) {
-        return res.json({ error: 'access denied' });
-    }
+    if (!req.session.user || users[req.session.user.nickname]?.lvl !== 7) return res.json({ error: 'access denied' });
     const { nickname } = req.body;
     if (nickname === 'STORM_X') return res.json({ error: 'Нельзя удалить владельца' });
     if (!users[nickname]) return res.json({ error: 'Пользователь не найден' });
-    
     delete users[nickname];
     res.json({ success: true });
 });
@@ -178,26 +151,18 @@ app.get('/logout', (req, res) => {
 
 io.on('connection', (socket) => {
     console.log('🔌 Сокет подключён');
-    
     socket.on('join chat', (chatName) => {
         if (!messages[chatName]) messages[chatName] = [];
         socket.join(chatName);
         socket.emit('chat history', messages[chatName]);
-        console.log(`📡 Присоединился к чату: ${chatName}`);
     });
-    
     socket.on('send message', (data) => {
         if (!data.chat || !messages[data.chat]) return;
-        const message = {
-            from: data.from, text: data.text, time: new Date().toLocaleTimeString(),
-            lvl: data.lvl, color: data.color
-        };
+        const message = { from: data.from, text: data.text, time: new Date().toLocaleTimeString(), lvl: data.lvl, color: data.color };
         messages[data.chat].push(message);
         if (messages[data.chat].length > 200) messages[data.chat].shift();
         io.to(data.chat).emit('new message', message);
-        console.log(`💬 Сообщение в ${data.chat} от ${data.from}`);
     });
-    
     socket.on('disconnect', () => console.log('🔌 Сокет отключён'));
 });
 
