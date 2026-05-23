@@ -1,7 +1,6 @@
 {
   "name": "squad-storm-link",
   "version": "1.0.0",
-  "description": "Squad_STORM_Link - защищённая спецсвязь",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
