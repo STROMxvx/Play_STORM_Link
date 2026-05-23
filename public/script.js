@@ -318,4 +318,60 @@ function editUser(nickname){
     modalBody.innerHTML = `
         <h3>✏️ Редактировать ${nickname}</h3>
         <label>Имя:</label><input id="editName" value="${user.name}">
-        <label>Ранг:</label><select id="editLvl
+        <label>Ранг:</label><select id="editLvl">
+            ${[1,2,3,4,5,6,7].map(l=>`<option value="${l}" ${user.lvl===l?'selected':''}>${rankNames[l]}</option>`).join('')}
+        </select>
+        <label>Поддолжность:</label><input id="editSubRole" value="${user.subRole||''}">
+        <label>Дата рождения:</label><input id="editBirthDate" value="${user.birthDate||''}">
+        <label>Комментарий:</label><textarea id="editComment" rows="2">${user.comment||''}</textarea>
+        <button onclick="submitEditUser('${nickname}')">💾 Сохранить</button>
+    `;
+}
+
+async function submitEditUser(nickname){
+    const data = {
+        nickname, name: document.getElementById('editName').value, lvl: document.getElementById('editLvl').value,
+        subRole: document.getElementById('editSubRole').value, birthDate: document.getElementById('editBirthDate').value,
+        comment: document.getElementById('editComment').value
+    };
+    const res = await fetch('/api/editUser', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    const result = await res.json();
+    if(result.success){ closeModal(); loadMembers(); buildChatMenu(); }
+    else alert(result.error);
+}
+
+async function toggleFreeze(nickname){
+    const user = allUsers.find(u=>u.nickname===nickname);
+    let reason = null;
+    if(!user.frozen) reason = prompt('Причина заморозки:\n- Аккаунт в "Отпуске"\n- Аккаунт взломан\n- Странные активности', 'Аккаунт в "Отпуске"');
+    if(!user.frozen && !reason) return;
+    const res = await fetch('/api/toggleFreeze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ nickname, reason }) });
+    const result = await res.json();
+    if(result.success){ closeModal(); loadMembers(); }
+    else alert(result.error);
+}
+
+function deleteUser(nickname){
+    if(confirm(`Удалить ${nickname}?`)){
+        fetch('/api/deleteUser', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ nickname }) })
+        .then(r=>r.json()).then(result=>{ if(result.success){ closeModal(); loadMembers(); }else alert(result.error); });
+    }
+}
+
+function giveWarning(nickname){
+    const text = prompt(`Выговор для ${nickname}\nТекст:`);
+    if(text) socket.emit('send message', { chat:'warnings', from:currentUser.nickname, text:`🔴 ВЫГОВОР для ${nickname}: ${text}`, lvl:currentUser.lvl, color:rankColors[currentUser.lvl] });
+}
+
+function closeModal(){ document.getElementById('modal').style.display = 'none'; }
+
+document.getElementById('logoutBtn')?.addEventListener('click', ()=> window.location.href='/logout');
+document.addEventListener('DOMContentLoaded', async ()=>{
+    await loadUser();
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('messageInput').addEventListener('keypress', e=>{ if(e.key==='Enter') sendMessage(); });
+    document.getElementById('addMemberBtn')?.addEventListener('click', openAddUserModal);
+    document.querySelector('.modal-close')?.addEventListener('click', closeModal);
+    window.onclick = e=>{ if(e.target === document.getElementById('modal')) closeModal(); };
+    switchChat('info');
+});
