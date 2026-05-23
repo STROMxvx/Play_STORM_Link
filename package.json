@@ -1,1 +1,15 @@
-
+{
+  "name": "squad-storm-link",
+  "version": "1.0.0",
+  "description": "Squad_STORM_Link - защищённая спецсвязь",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "bcryptjs": "^2.4.3",
+    "express-session": "^1.17.3"
+  }
+}
