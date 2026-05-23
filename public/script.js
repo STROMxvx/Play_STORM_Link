@@ -404,4 +404,153 @@ function openUserModal(nickname) {
         <h3>👤 ${escapeHtml(user.nickname)}</h3>
         <div style="text-align:center;margin:15px 0;">
             <span style="display:inline-block;padding:6px 20px;background:${rankColors[user.lvl]};border-radius:30px;color:white;font-weight:bold;text-shadow:0 0 2px black;">${user.lvl} LVL · ${rankNames[user.lvl]}</span>
-            ${user.subRole ? `<div style="margin-top:8px;">📌 Подроль: ${escapeHtml(user.subRole
+            ${user.subRole ? `<div style="margin-top:8px;">📌 Подроль: ${escapeHtml(user.subRole)}</div>` : ''}
+            <div style="margin-top:5px;color:#ffaa33;">⚠️ Выговоры: ${warningsList.length}/3</div>
+        </div>
+        <p><strong>👤 Ник:</strong> <span style="color:#ffdd00;">${escapeHtml(user.nickname)}</span></p>
+        <p><strong>👤 Имя:</strong> <span style="color:#ffdd00;">${escapeHtml(user.name)}</span></p>
+        <p><strong>🎂 Дата рождения:</strong> ${user.birthDate || '—'}</p>
+        <p><strong>📅 Дата вступления:</strong> ${user.joinDate} → <span style="color:#ffdd00;">${exp}</span></p>
+        <p><strong>📝 Комментарий:</strong> ${user.comment || '—'}</p>
+        ${user.frozen ? `<p><strong>❄️ Заморожен:</strong> ${user.frozenReason || 'Без причины'}</p>` : ''}
+        ${warningsHtml}
+        <div class="user-actions-modal">
+            ${currentUser.lvl === 7 ? `
+                <button class="user-action-btn edit" onclick="editUser('${user.nickname}')">✏️ Редактировать</button>
+                <button class="user-action-btn warn" onclick="giveWarningWithReason('${user.nickname}')">📝 Выдать выговор</button>
+                <button class="user-action-btn freeze" onclick="toggleFreeze('${user.nickname}')">${user.frozen ? '❄️ Разморозить' : '🔥 Заморозить'}</button>
+                ${user.nickname !== 'STORM_X' ? `<button class="user-action-btn delete" onclick="deleteUser('${user.nickname}')">❌ Удалить</button>` : ''}
+            ` : '<p style="color:#888;">👁️ Только просмотр</p>'}
+        </div>
+    `;
+    modal.style.display = 'block';
+}
+
+// ВЫГОВОР (с сохранением)
+function giveWarningWithReason(nickname) {
+    if (currentUser.lvl < 6) return;
+    const reason = prompt(`Выговор для ${nickname}\nВведите причину выговора:`);
+    if (!reason) return;
+    
+    const warningCount = getWarningCount(nickname) + 1;
+    addWarningToUser(nickname, reason);
+    
+    socket.emit('send message', { 
+        chat: 'warnings_list', 
+        from: currentUser.nickname, 
+        text: `🔴 ВЫГОВОР №${warningCount} для ${nickname}\n📝 Причина: ${reason}\n👮 Выдал: ${currentUser.nickname}\n📅 Дата: ${new Date().toLocaleString()}`,
+        lvl: currentUser.lvl, 
+        color: rankColors[currentUser.lvl] 
+    });
+    
+    alert(`✅ Выговор выдан ${nickname} (${warningCount}/3)`);
+    closeModal();
+}
+
+// АДМИН ФУНКЦИИ
+async function loadMembers() { 
+    const res = await fetch('/api/users'); 
+    const data = await res.json(); 
+    if (!data.error) { allUsers = data; renderMembersList(); } 
+}
+
+function renderMembersList() { 
+    const container = document.getElementById('membersList'); 
+    if (!container) return; 
+    const sorted = [...allUsers].sort((a, b) => b.lvl - a.lvl); 
+    container.innerHTML = sorted.map(user => `
+        <div class="member-item" data-nickname="${user.nickname}">
+            <div class="member-rank-badge" style="background:${rankColors[user.lvl]}">${user.lvl} LVL</div>
+            <div class="member-info">
+                <div class="member-nick">${escapeHtml(user.nickname)}</div>
+                <div class="member-name">${escapeHtml(user.name)}</div>
+                <div class="member-role">${rankNames[user.lvl]}${user.subRole ? ` · ${user.subRole}` : ''}</div>
+                <div class="member-role" style="color:#ffaa33;">⚠️ ${getWarningCount(user.nickname)}/3</div>
+            </div>
+            ${user.frozen ? '<div class="frozen-badge">❄️</div>' : ''}
+        </div>`).join(''); 
+    document.querySelectorAll('.member-item').forEach(el => el.addEventListener('click', () => openUserModal(el.dataset.nickname))); 
+}
+
+function openAddUserModal() { 
+    if (currentUser.lvl !== 7) return; 
+    const modal = document.getElementById('modal'); 
+    modal.innerHTML = `<div class="modal-content"><span class="modal-close">&times;</span><div id="modalBody"><h3>➕ Добавить участника</h3><label>Ник (логин):</label><input id="addNickname"><label>Имя:</label><input id="addName"><label>Пароль:</label><input id="addPassword" type="text"><label>Ранг:</label><select id="addLvl"><option value="1">Гость</option><option value="2">Squad 545</option><option value="3">Трудовой состав</option><option value="4">Ураган</option><option value="5">Модератор</option><option value="6">Администратор</option></select><label>Подроль:</label><input id="addSubRole" placeholder="Монтажёр, Художник..."><label>Дата рождения:</label><input id="addBirthDate" placeholder="ДД.ММ.ГГГГ"><label>Комментарий:</label><textarea id="addComment" rows="2"></textarea><label>📅 Дата вступления (оставьте пустым для автоматической):</label><input id="addJoinDate" placeholder="ДД.ММ.ГГГГ"><button onclick="submitAddUser()">✅ Добавить</button></div></div>`; 
+    modal.style.display = 'block'; 
+    document.querySelector('.modal-close').onclick = closeModal; 
+}
+
+async function submitAddUser() { 
+    let joinDate = document.getElementById('addJoinDate').value;
+    if (!joinDate) { joinDate = new Date().toLocaleDateString(); }
+    
+    const data = { 
+        nickname: document.getElementById('addNickname').value, 
+        name: document.getElementById('addName').value, 
+        password: document.getElementById('addPassword').value, 
+        lvl: document.getElementById('addLvl').value, 
+        subRole: document.getElementById('addSubRole').value, 
+        birthDate: document.getElementById('addBirthDate').value, 
+        comment: document.getElementById('addComment').value,
+        joinDate: joinDate
+    }; 
+    const res = await fetch('/api/addUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); 
+    const result = await res.json(); 
+    if (result.success) { closeModal(); loadMembers(); buildMenu(); } 
+    else alert(result.error); 
+}
+
+function editUser(nickname) { 
+    if (currentUser.lvl !== 7) return; 
+    const user = allUsers.find(u => u.nickname === nickname); 
+    const modalBody = document.getElementById('modalBody'); 
+    modalBody.innerHTML = `<h3>✏️ Редактировать ${nickname}</h3><label>Имя:</label><input id="editName" value="${user.name}"><label>Ранг:</label><select id="editLvl">${[1, 2, 3, 4, 5, 6, 7].map(l => `<option value="${l}" ${user.lvl === l ? 'selected' : ''}>${rankNames[l]}</option>`).join('')}</select><label>Подроль:</label><input id="editSubRole" value="${user.subRole || ''}"><label>Дата рождения:</label><input id="editBirthDate" value="${user.birthDate || ''}"><label>Комментарий:</label><textarea id="editComment" rows="2">${user.comment || ''}</textarea><label>Дата вступления:</label><input id="editJoinDate" value="${user.joinDate}"><button onclick="submitEditUser('${nickname}')">💾 Сохранить</button>`; 
+}
+
+async function submitEditUser(nickname) { 
+    const data = { 
+        nickname, 
+        name: document.getElementById('editName').value, 
+        lvl: document.getElementById('editLvl').value, 
+        subRole: document.getElementById('editSubRole').value, 
+        birthDate: document.getElementById('editBirthDate').value, 
+        comment: document.getElementById('editComment').value,
+        joinDate: document.getElementById('editJoinDate').value
+    }; 
+    const res = await fetch('/api/editUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); 
+    const result = await res.json(); 
+    if (result.success) { closeModal(); loadMembers(); buildMenu(); } 
+    else alert(result.error); 
+}
+
+async function toggleFreeze(nickname) { 
+    if (currentUser.lvl !== 7) return; 
+    const user = allUsers.find(u => u.nickname === nickname); 
+    let reason = null; 
+    if (!user.frozen) reason = prompt('Причина заморозки:\n- Аккаунт в "Отпуске"\n- Аккаунт взломан\n- Странные активности', 'Аккаунт в "Отпуске"'); 
+    if (!user.frozen && !reason) return; 
+    const res = await fetch('/api/toggleFreeze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname, reason }) }); 
+    const result = await res.json(); 
+    if (result.success) { closeModal(); loadMembers(); } 
+    else alert(result.error); 
+}
+
+function deleteUser(nickname) { 
+    if (currentUser.lvl !== 7) return; 
+    if (confirm(`Удалить ${nickname}?`)) { 
+        fetch('/api/deleteUser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname }) })
+            .then(r => r.json()).then(result => { if (result.success) { closeModal(); loadMembers(); } else alert(result.error); }); 
+    } 
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+// ЗАПУСК
+document.getElementById('logoutBtn')?.addEventListener('click', () => window.location.href = '/logout');
+document.addEventListener('DOMContentLoaded', async () => { 
+    await loadUser(); 
+    document.getElementById('addMemberBtn')?.addEventListener('click', openAddUserModal); 
+    document.querySelector('.modal-close')?.addEventListener('click', closeModal); 
+    window.onclick = e => { if (e.target === document.getElementById('modal')) closeModal(); }; 
+    switchChat('info_chat'); 
+});
