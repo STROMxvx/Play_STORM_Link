@@ -24,12 +24,11 @@ const rankNames = {
     7: 'Владелец' 
 };
 
-// Хранилище выговоров для каждого пользователя
+// Хранилище выговоров
 let userWarnings = {};
 
-// КРАСИВЫЕ ПРАВИЛА - БЕЛЫЕ БУКВЫ С ЧЁРНОЙ ОБВОДКОЙ
-const rulesText = `
-<div style="padding:10px; color:#ffffff; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black;">
+// ПРАВИЛА - ПОЛНЫЙ ТЕКСТ С БЕЛЫМИ БУКВАМИ
+const rulesText = `<div style="padding:10px; color:#ffffff; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black;">
     <h2 style="color:#ffdd00; text-align:center; margin-bottom:20px; text-shadow: 0 0 3px black;">📜 ПРАВИЛА СООБЩЕСТВА 📜</h2>
     
     <div style="background:rgba(255,51,102,0.3); border-left:4px solid #ff3366; padding:12px; margin-bottom:20px; border-radius:8px;">
@@ -160,7 +159,7 @@ const menuStructure = [
     }
 ];
 
-// НАЗВАНИЯ ЧАТОВ (РУССКИЕ)
+// НАЗВАНИЯ ЧАТОВ
 const chatNames = {
     info_chat: '📢 Информация',
     announcements: '📣 Объявления',
@@ -215,7 +214,7 @@ async function loadUser() {
     }
 }
 
-// ===== ВЫГОВОРЫ (ХРАНЕНИЕ В LOCALSTORAGE) =====
+// ===== ВЫГОВОРЫ =====
 function loadWarnings() { 
     const saved = localStorage.getItem('userWarnings'); 
     if (saved) { 
@@ -494,7 +493,61 @@ function submitComplaint() {
     alert("✅ Жалоба отправлена!");
 }
 
-// ===== ФУНКЦИЯ ДЛЯ ВЫДАЧИ НАКАЗАНИЙ (ВЫГОВОР/БАН/МУТ) =====
+// ===== СОКЕТЫ =====
+socket.on('chat history', (messages) => { 
+    const container = document.getElementById('chatMessages'); 
+    container.innerHTML = ''; 
+    if (!messages || messages.length === 0) { 
+        container.innerHTML = '<div class="welcome-message">✨ Сообщений пока нет.</div>'; 
+        return; 
+    } 
+    messages.forEach(msg => addMessageToChat(msg)); 
+});
+
+socket.on('new message', (msg) => addMessageToChat(msg));
+
+function addMessageToChat(msg) { 
+    const container = document.getElementById('chatMessages'); 
+    const isOwn = msg.from === currentUser.nickname; 
+    const msgDiv = document.createElement('div'); 
+    msgDiv.className = `message ${isOwn ? 'own' : ''}`; 
+    msgDiv.innerHTML = `
+        <div class="message-header">
+            <span class="message-rank" style="background:${msg.color || '#333'}">${msg.lvl} LVL</span>
+            <span class="message-from">${escapeHtml(msg.from)}</span>
+            <span class="message-time">${msg.time}</span>
+        </div>
+        <div class="message-text" style="white-space:pre-wrap;">${escapeHtml(msg.text)}</div>
+    `; 
+    container.appendChild(msgDiv); 
+    container.scrollTop = container.scrollHeight; 
+}
+
+function sendMessage() { 
+    const input = document.getElementById('messageInput'); 
+    if (!input) return; 
+    const text = input.value.trim(); 
+    if (!text) return; 
+    if (currentChat === 'rules' && currentUser.lvl !== 7) { 
+        alert("Только LVL 7 может писать в правила"); 
+        return; 
+    } 
+    socket.emit('send message', { 
+        chat: currentChat, 
+        from: currentUser.nickname, 
+        text: text, 
+        lvl: currentUser.lvl, 
+        color: rankColors[currentUser.lvl] 
+    }); 
+    input.value = ''; 
+}
+
+function escapeHtml(str) { 
+    if (!str) return ''; 
+    return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); 
+}
+
+// ===== ФУНКЦИЯ ДЛЯ ВЫДАЧИ НАКАЗАНИЙ =====
 function openPunishModal(nickname) {
     const user = allUsers.find(u => u.nickname === nickname);
     if (!user) return;
@@ -686,16 +739,13 @@ function submitPunish(nickname) {
     let reason = document.getElementById('punishReason')?.value || '';
     let duration = '';
     let typeName = '';
-    let color = '';
     
     if (punishType === 'warning') {
         typeName = '📝 УСТНОЕ ПРЕДУПРЕЖДЕНИЕ';
-        color = '#00ff88';
         if (!reason) { alert("Введите причину предупреждения"); return; }
     } 
     else if (punishType === 'strike') {
         typeName = '🔴 ВЫГОВОР';
-        color = '#ff3366';
         if (!reason) { alert("Выберите причину выговора"); return; }
         
         const currentWarnings = getWarningCount(nickname) + 1;
@@ -707,14 +757,12 @@ function submitPunish(nickname) {
     } 
     else if (punishType === 'ban') {
         typeName = '🚫 БАН';
-        color = '#ff4444';
         const durationSelect = document.getElementById('banDuration');
         duration = durationSelect ? durationSelect.value : 'Навсегда';
         if (!reason) { alert("Введите причину бана"); return; }
     } 
     else if (punishType === 'mute') {
         typeName = '🔇 МУТ';
-        color = '#ffaa33';
         const durationSelect = document.getElementById('muteDuration');
         duration = durationSelect ? durationSelect.value : '1 час';
         if (!reason) { alert("Введите причину мута"); return; }
@@ -759,61 +807,7 @@ function submitPunish(nickname) {
     }
 }
 
-// ===== СОКЕТЫ =====
-socket.on('chat history', (messages) => { 
-    const container = document.getElementById('chatMessages'); 
-    container.innerHTML = ''; 
-    if (!messages || messages.length === 0) { 
-        container.innerHTML = '<div class="welcome-message">✨ Сообщений пока нет.</div>'; 
-        return; 
-    } 
-    messages.forEach(msg => addMessageToChat(msg)); 
-});
-
-socket.on('new message', (msg) => addMessageToChat(msg));
-
-function addMessageToChat(msg) { 
-    const container = document.getElementById('chatMessages'); 
-    const isOwn = msg.from === currentUser.nickname; 
-    const msgDiv = document.createElement('div'); 
-    msgDiv.className = `message ${isOwn ? 'own' : ''}`; 
-    msgDiv.innerHTML = `
-        <div class="message-header">
-            <span class="message-rank" style="background:${msg.color || '#333'}">${msg.lvl} LVL</span>
-            <span class="message-from">${escapeHtml(msg.from)}</span>
-            <span class="message-time">${msg.time}</span>
-        </div>
-        <div class="message-text" style="white-space:pre-wrap;">${escapeHtml(msg.text)}</div>
-    `; 
-    container.appendChild(msgDiv); 
-    container.scrollTop = container.scrollHeight; 
-}
-
-function sendMessage() { 
-    const input = document.getElementById('messageInput'); 
-    if (!input) return; 
-    const text = input.value.trim(); 
-    if (!text) return; 
-    if (currentChat === 'rules' && currentUser.lvl !== 7) { 
-        alert("Только LVL 7 может писать в правила"); 
-        return; 
-    } 
-    socket.emit('send message', { 
-        chat: currentChat, 
-        from: currentUser.nickname, 
-        text: text, 
-        lvl: currentUser.lvl, 
-        color: rankColors[currentUser.lvl] 
-    }); 
-    input.value = ''; 
-}
-
-function escapeHtml(str) { 
-    if (!str) return ''; 
-    return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); 
-}
-
-// ===== УЧАСТНИКИ (ПРОСМОТР ДЛЯ ВСЕХ, РЕДАКТИРОВАНИЕ ТОЛЬКО LVL7) =====
+// ===== УЧАСТНИКИ =====
 function showMembersPanel() { 
     const modal = document.getElementById('modal'); 
     const modalBody = document.getElementById('modalBody'); 
@@ -883,7 +877,7 @@ function openUserModal(nickname) {
     modal.style.display = 'block';
 }
 
-// ===== АДМИН ФУНКЦИИ (ТОЛЬКО LVL7) =====
+// ===== АДМИН ФУНКЦИИ =====
 async function loadMembers() { 
     try {
         const res = await fetch('/api/users'); 
