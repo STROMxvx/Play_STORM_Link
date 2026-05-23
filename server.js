@@ -58,18 +58,29 @@ const rankNames = {
     7: 'Владелец'
 };
 
-// ===== ВСЕ ЧАТЫ И КАНАЛЫ =====
+// ===== ВСЕ ЧАТЫ И КАНАЛЫ (ПОЛНЫЙ СПИСОК) =====
 const messages = {
     // Основные чаты
-    info: [],
+    info_chat: [],
     announcements: [],
-    warnings: [],
-    squad545: [],
-    hurricane: [],
-    moderators: [],
-    ideas: [],
     complaints: [],
+    ideas: [],
     tasks: [],
+    warnings: [],
+    
+    // Звонки (каналы)
+    guest_call: [],
+    squad545_call: [],
+    record1: [],
+    record2: [],
+    record4: [],
+    stream: [],
+    workers_meet: [],
+    moderators_meet: [],
+    admin_channel: [],
+    
+    // LVL 2
+    squad545: [],
     
     // Трудовой состав (подкатегории)
     labor_general: [],
@@ -82,16 +93,14 @@ const messages = {
     builder: [],
     coder: [],
     
-    // Звонки (каналы)
-    guest_call: [],
-    squad545_call: [],
-    record1: [],
-    record2: [],
-    record4: [],
-    stream: [],
-    workers_meet: [],
-    moderators_meet: [],
-    admin_channel: []
+    // LVL 4
+    hurricane: [],
+    
+    // LVL 5
+    moderators: [],
+    
+    // LVL 6
+    admin_chat: []
 };
 
 // ===== МИДЛВЕР ДЛЯ ПРОВЕРКИ АВТОРИЗАЦИИ =====
