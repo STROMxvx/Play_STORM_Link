@@ -5,71 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Squad_STORM_Link - Спецсвязь</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Дополнительные стили для мобильной версии */
-        @media (max-width: 768px) {
-            body {
-                position: relative;
-            }
-            .mobile-menu-btn {
-                position: fixed;
-                bottom: 20px;
-                left: 20px;
-                z-index: 1001;
-                background: linear-gradient(135deg, #0088ff, #0066cc);
-                border: none;
-                border-radius: 50%;
-                width: 55px;
-                height: 55px;
-                font-size: 28px;
-                color: white;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: transform 0.2s;
-            }
-            .mobile-menu-btn:active {
-                transform: scale(0.95);
-            }
-            .mobile-users-btn {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                z-index: 1001;
-                background: linear-gradient(135deg, #ff8844, #ff6633);
-                border: none;
-                border-radius: 50%;
-                width: 55px;
-                height: 55px;
-                font-size: 28px;
-                color: white;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: transform 0.2s;
-            }
-            .mobile-users-btn:active {
-                transform: scale(0.95);
-            }
-            .sidebar-left.open, .sidebar-right.open {
-                box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            }
-        }
-        @media (min-width: 769px) {
-            .mobile-menu-btn, .mobile-users-btn {
-                display: none;
-            }
-        }
-    </style>
 </head>
 <body>
     <!-- Мобильные кнопки -->
-    <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">☰</button>
-    <button class="mobile-users-btn" id="mobileUsersBtn" style="display: none;">👥</button>
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+    <button class="mobile-users-btn" id="mobileUsersBtn">👥</button>
+    <div class="mobile-overlay" id="mobileOverlay"></div>
     
     <div class="app-container">
         <div class="sidebar-left" id="sidebarLeft">
@@ -92,6 +33,14 @@
                 <div class="welcome-message">⚡ Добро пожаловать в Squad_STORM_Link ⚡<br><small>Выберите чат слева</small></div>
             </div>
             <div class="chat-input-area" id="chatInputArea">
+                <div class="input-buttons">
+                    <button id="attachBtn" class="input-btn" title="Прикрепить файл">📎</button>
+                    <button id="voiceBtn" class="input-btn" title="Голосовое сообщение">🎤</button>
+                </div>
+                <div class="recording-indicator" id="recordingIndicator">
+                    <span>🔴 Запись...</span>
+                    <span class="recording-timer" id="recordingTimer">0:00</span>
+                </div>
                 <input type="text" id="messageInput" placeholder="Введите сообщение...">
                 <button id="sendBtn">📤</button>
             </div>
@@ -106,6 +55,13 @@
         </div>
     </div>
     
+    <!-- Индикатор загрузки файлов -->
+    <div class="upload-progress" id="uploadProgress">
+        <span>📁 Загрузка: <span id="uploadPercent">0</span>%</span>
+        <progress id="uploadProgressBar" value="0" max="100" style="width:100%; margin-top:5px;"></progress>
+    </div>
+    
+    <!-- Модальное окно -->
     <div id="modal" class="modal">
         <div class="modal-content">
             <span class="modal-close">&times;</span>
