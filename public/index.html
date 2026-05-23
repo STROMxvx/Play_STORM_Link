@@ -2,13 +2,77 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Squad_STORM_Link - Спецсвязь</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Дополнительные стили для мобильной версии */
+        @media (max-width: 768px) {
+            body {
+                position: relative;
+            }
+            .mobile-menu-btn {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                z-index: 1001;
+                background: linear-gradient(135deg, #0088ff, #0066cc);
+                border: none;
+                border-radius: 50%;
+                width: 55px;
+                height: 55px;
+                font-size: 28px;
+                color: white;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.2s;
+            }
+            .mobile-menu-btn:active {
+                transform: scale(0.95);
+            }
+            .mobile-users-btn {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1001;
+                background: linear-gradient(135deg, #ff8844, #ff6633);
+                border: none;
+                border-radius: 50%;
+                width: 55px;
+                height: 55px;
+                font-size: 28px;
+                color: white;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.2s;
+            }
+            .mobile-users-btn:active {
+                transform: scale(0.95);
+            }
+            .sidebar-left.open, .sidebar-right.open {
+                box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            }
+        }
+        @media (min-width: 769px) {
+            .mobile-menu-btn, .mobile-users-btn {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Мобильные кнопки -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">☰</button>
+    <button class="mobile-users-btn" id="mobileUsersBtn" style="display: none;">👥</button>
+    
     <div class="app-container">
-        <div class="sidebar-left">
+        <div class="sidebar-left" id="sidebarLeft">
             <div class="user-profile">
                 <div class="user-rank" id="userRankBadge">?</div>
                 <div class="user-info">
@@ -21,7 +85,7 @@
         </div>
         
         <div class="chat-main">
-            <div class="chat-header">
+            <div class="chat-header" id="chatHeader">
                 <span id="currentChatName">Информация</span>
             </div>
             <div class="chat-messages" id="chatMessages">
@@ -33,7 +97,7 @@
             </div>
         </div>
         
-        <div class="sidebar-right" id="sidebarRight" style="display: none;">
+        <div class="sidebar-right" id="sidebarRight">
             <div class="members-header">
                 <span>👥 Участники</span>
                 <button id="addMemberBtn" class="add-member-btn" title="Добавить участника">➕</button>
